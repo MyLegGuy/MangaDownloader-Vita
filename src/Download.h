@@ -3,7 +3,6 @@
 
 	#if DOWNLOADTYPE == DOWNLOAD_CURL
 		#include <curl/curl.h>
-
 		typedef struct grhuigruei{
 			char *memory;
 			size_t size;
