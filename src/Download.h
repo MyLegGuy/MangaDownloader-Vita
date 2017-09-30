@@ -1,6 +1,18 @@
 #ifndef DOWNLOADHEADER
 #define DOWNLOADHEADER
 
+	#if PLATFORM == PLAT_VITA
+		#include <psp2/sysmodule.h>
+		#include <psp2/kernel/processmgr.h>
+		#include <psp2/display.h>
+		
+		#include <psp2/net/net.h>
+		#include <psp2/net/netctl.h>
+		#include <psp2/net/http.h>
+		
+		#include <psp2/io/fcntl.h>
+	#endif
+
 	#if DOWNLOADTYPE == DOWNLOAD_CURL
 		#include <curl/curl.h>
 		typedef struct grhuigruei{
@@ -58,17 +70,31 @@
 				*_toStoreSize = chunkToDownloadTo.size;
 			}
 		}
-		void initCurl(){
+		void initDownload(){
+			#if PLATFORM == PLAT_VITA
+				sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
+				SceNetInitParam netInitParam;
+				int size = 4*1024*1024;
+				netInitParam.memory = malloc(size);
+				netInitParam.size = size;
+				netInitParam.flags = 0;
+				sceNetInit(&netInitParam);
+				sceNetCtlInit();
+				sceSysmoduleLoadModule(SCE_SYSMODULE_HTTP);
+				sceHttpInit(4*1024*1024);
+			#endif
 			curl_global_init(CURL_GLOBAL_ALL);
 			curl_handle = curl_easy_init();
 			//curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
 			//curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
+
 			// Loads the certificate for https stuff. If the certificate file does not exist, allow insecure connections
-			if (!checkFileExist(CERTFILELOCATION)){
-				printf(CERTFILELOCATION" not found! Will allow insecure connections!");
+			FixPath(CONSTANTCERTFILELOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
+			if (!checkFileExist(tempPathFixBuffer)){
+				printf("%s not found! Will allow insecure connections!",tempPathFixBuffer);
 				curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 			}else{
-				curl_easy_setopt(curl_handle, CURLOPT_CAINFO, CERTFILELOCATION);
+				curl_easy_setopt(curl_handle, CURLOPT_CAINFO, tempPathFixBuffer);
 			}
 			curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
 		}

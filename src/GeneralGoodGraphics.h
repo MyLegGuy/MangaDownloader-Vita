@@ -63,7 +63,11 @@
 			IMG_Init( IMG_INIT_PNG );
 			SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "0");
 		#else
-			#error Hi, Nathan here. I have to make graphics init function for this renderer. RENDERER
+			#if RENDERER == REND_VITA2D
+				vita2d_init();
+			#else
+				#error Hi, Nathan here. I have to make graphics init function for this renderer. RENDERER
+			#endif
 		#endif
 	}
 

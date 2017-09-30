@@ -32,9 +32,20 @@
 	#define PRE_ANDROID 4
 	
 	//===============================
+	// (Incomplete) Auto platform
+	//===============================
+	#if _WIN32
+		#define PRESET PRE_WINDOWS
+	#elif __unix__
+		#error no
+	#endif
+
+	//===============================
 	// CHANGE THIS CODE TO CONFIGURE
 	//===============================
-	#define PRESET PRE_WINDOWS
+	#ifndef PRESET
+		#define PRESET PRE_VITA
+	#endif
 	#define USEUMA0 0
 	#define DOFIXCOORDS 0
 	#define USEVSYNC 0
@@ -50,7 +61,7 @@
 		#define SUBPLATFORM SUB_NONE
 		#define SOUNDPLAYER SND_NONE
 		#define RENDERER REND_VITA2D
-		#define TEXTRENDERER TEXT_DEBUG
+		#define TEXTRENDERER TEXT_VITA2D
 	#elif PRESET == PRE_3DS
 		#define PLATFORM PLAT_3DS
 		#define SUBPLATFORM SUB_NONE

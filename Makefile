@@ -1,11 +1,9 @@
-PSVITAIP=$(VITAIP)
-
 TITLE_ID = VSDK00001
-TITLE_ID = MANGADOWN
+TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
 OBJS     = src/main.o
 
-LIBS = -lvita2d -lSceDisplay_stub -lSceGxm_stub \
+LIBS = -lvita2d -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub -lSceDisplay_stub -lSceGxm_stub \
 	-lSceSysmodule_stub -lSceCtrl_stub -lScePgf_stub \
 	-lSceCommonDialog_stub -lSceAudio_stub -lSceTouch_stub -lfreetype -lpng -ljpeg -lz -lm -lc -llua -lm -lcurl -lssl -lcrypto -lz
 
@@ -15,9 +13,6 @@ CXX = $(PREFIX)-g++
 CFLAGS  = -Wl,-q -Wall -O3
 CXXFLAGS = $(CFLAGS)
 ASFLAGS = $(CFLAGS)
-
-
-
 
 all: $(TARGET).vpk
 
@@ -43,9 +38,9 @@ clean:
 		eboot.bin param.sfo
 
 vpksend: $(TARGET).vpk
-	curl -T $(TARGET).vpk ftp://$(PSVITAIP):1337/ux0:/_stuffz/
+	curl -T $(TARGET).vpk ftp://192.168.1.229:1337/ux0:/_stuffz/
 	@echo "Sent."
 
 send: eboot.bin
-	curl -T eboot.bin ftp://$(PSVITAIP):1337/ux0:/app/$(TITLE_ID)/
+	curl -T eboot.bin ftp://192.168.1.229:1337/ux0:/app/$(TITLE_ID)/
 	@echo "Sent."

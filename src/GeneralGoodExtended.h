@@ -2,6 +2,7 @@
 #define GENERALGOODSTUFFEXTENDED
 	#define ISUSINGEXTENDED 1
 	
+	char tempPathFixBuffer[256];
 	char* DATAFOLDER=NULL;
 	
 	// For FixPath argument

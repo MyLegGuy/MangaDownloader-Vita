@@ -1,19 +1,25 @@
+/*
+TODO - Vita string input
+NOTE - 60fps limiting is fine for Vita because screen is 60 HZ
+*/
 #define VERSION 1
 
-#define CERTFILELOCATION "./curl-ca-bundle.crt"
 #define LUAREGISTER(x,y) lua_pushcfunction(L,x);\
 	lua_setglobal(L,y);
 #define STARTTRACKINGGLOBALS() luaL_dostring(L,"GlobalsTrackStart()");
 #define ENDTRACKINGGLOBALS() luaL_dostring(L,"GlobalsTrackRemove()");
-#define MANGAFOLDERROOT "./Manga/"
-#define DOWNLOADERSLOCATION "./Downloaders/"
+#define CONSTANTCERTFILELOCATION "assets/curl-ca-bundle.crt"
+#define CONSTANTMANGAFOLDERROOT "Manga/"
+#define CONSTANTDOWNLOADERSLOCATION "assets/Downloaders/"
+#define CONSTANTFONTFILE "assets/LiberationSans-Regular.ttf"
 #define INPUTTYPESTRING 1
 #define INPUTTYPENUMBER 2
 #define INPUTTYPELIST 3
-
+// Customizable colors confirmed?!
 #define COLOROPTION 255,255,255
 #define COLORSELECTED 0,255,0
-
+#define COLORSTATUS COLOROPTION
+// For lists and number input, how much you move when pressing left or right
 #define LISTLEFTRIGHTJUMPOFFSET 10
 
 #define DOWNLOAD_NONE 0
@@ -45,15 +51,18 @@ char* longNameQueue[5];
 char inputTypeQueue[5];
 int currentQueue=0;
 int currentTextHeight=0;
-
 int screenHeight;
 int screenWidth;
 int cursorWidth;
+
+
+char* mangaFolderRoot;
+char* downloadersLocation;
+
 //===============
 // OPTIONS
 //===============
 char downloadCoverIfPossible=1;
-
 /*============================================================================*/
 void quitApplication(){
 	curl_easy_cleanup(curl_handle);
@@ -84,6 +93,358 @@ int moveCursor(int _selection, int _listSize, char _canWrap, int _amount){
 		}
 	}
 	return _selection;
+}
+void gooditoa(int _num, char* _buffer, int _uselessBase){
+	sprintf(_buffer, "%d", _num);
+}
+// Public domain function
+size_t getline(char **lineptr, size_t *n, FILE *stream) {
+	char *bufptr = NULL;
+	char *p = bufptr;
+	size_t size;
+	int c;
+
+	if (lineptr == NULL) {
+		return -1;
+	}
+	if (stream == NULL) {
+		return -1;
+	}
+	if (n == NULL) {
+		return -1;
+	}
+	bufptr = *lineptr;
+	size = *n;
+
+	c = fgetc(stream);
+	if (c == EOF) {
+		return -1;
+	}
+	if (bufptr == NULL) {
+		bufptr = malloc(128);
+		if (bufptr == NULL) {
+			return -1;
+		}
+		size = 128;
+	}
+	p = bufptr;
+	while(c != EOF) {
+		if ((p - bufptr) > (size - 1)) {
+			size = size + 128;
+			bufptr = realloc(bufptr, size);
+			if (bufptr == NULL) {
+				return -1;
+			}
+		}
+		*p++ = c;
+		if (c == '\n') {
+			break;
+		}
+		c = fgetc(stream);
+	}
+
+	*p++ = '\0';
+	*lineptr = bufptr;
+	*n = size;
+
+	return p - bufptr - 1;
+}
+
+// Should return string. malloc'd
+// Can return NULL, meaning user canceled
+char* userKeyboardInput(char* _startingString){
+	printf("Input string:\n");
+	char* _tempBuffer=NULL;
+	int _tempIntBuffer;
+	getline(&_tempBuffer,&_tempIntBuffer,stdin);
+	removeNewline(&_tempBuffer);
+	return _tempBuffer;
+}
+// TODO - Slowly scroll results that won't fit on the screen
+// Returns -1 if user cancels
+// Returns 1 based selection
+int showList(char** _currentList, int _listSize, int _startingSelection){
+	ControlsEnd();
+	int i;
+	char _optionsPerScreen;
+	int _selection=_startingSelection;
+	int _selectionListOffset=0;
+	if (screenHeight-_listSize*currentTextHeight>0){
+		_optionsPerScreen = _listSize;
+	}else{
+		_optionsPerScreen = screenHeight/currentTextHeight;
+	}
+	_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+	char* _lastUserSearchTerm=NULL;
+	int _lastSearchResult=0;
+	while (1){
+		FpsCapStart();
+		
+		ControlsStart();
+		if (WasJustPressed(SCE_CTRL_DOWN)){
+			_selection = moveCursor(_selection,_listSize,1,1);
+			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+		}else if (WasJustPressed(SCE_CTRL_UP)){
+			_selection = moveCursor(_selection,_listSize,1,-1);
+			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+		}else if (WasJustPressed(SCE_CTRL_RIGHT)){
+			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET);
+			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+		}else if (WasJustPressed(SCE_CTRL_LEFT)){
+			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET*-1);
+			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+		}else if (WasJustPressed(SCE_CTRL_CROSS)){
+			if (_lastUserSearchTerm!=NULL){
+				free(_lastUserSearchTerm);
+			}
+			return _selection+1;
+		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			if (_lastUserSearchTerm!=NULL){
+				free(_lastUserSearchTerm);
+			}
+			return -1;
+		}else if (WasJustPressed(SCE_CTRL_SQUARE)){
+			if (_lastUserSearchTerm!=NULL){
+				free(_lastUserSearchTerm);
+			}
+			// SEARCH LIST FUNCTION
+			_lastUserSearchTerm = userKeyboardInput("starting string here");
+			for (i=0;i<_listSize;i++){
+				if (strstr(_currentList[i],_lastUserSearchTerm)!=NULL){
+					_selection=i;
+					_lastSearchResult=i;
+					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+					break;
+				}
+			}
+		}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
+			for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
+				if (strstr(_currentList[i],_lastUserSearchTerm)!=NULL){
+					_selection=i;
+					_lastSearchResult=i;
+					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+					break;
+				}
+				if (i==_listSize-1){
+					if (_lastSearchResult!=0){
+						i=0;
+						_lastSearchResult=0;
+					}
+				}
+			}
+		}
+		ControlsEnd();
+
+		StartDrawing();
+		for (i=0;i<_optionsPerScreen;i++){
+			GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+		}
+		GoodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
+		GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,_currentList[_selection],fontSize,COLORSELECTED);
+		EndDrawing();
+
+		FpsCapWait();
+	}
+}
+// _userInputNumber should be ONE BASED
+void pushUserInput(lua_State* passedState, void* _userInputResults, int _tempType, int _userInputNumber){
+	// Set a global variable to the user's choice
+	// Construct variable name
+	char _userInputResultName[256];
+	sprintf(_userInputResultName,"userInput%02d",_userInputNumber);
+	// Push different type depending on input type
+	if (_tempType==INPUTTYPESTRING){
+		lua_pushstring(passedState,(char*)_userInputResults);
+	}else if (_tempType==INPUTTYPENUMBER || _tempType==INPUTTYPELIST){
+		lua_pushnumber(passedState,*((int*)_userInputResults));
+	}
+	lua_setglobal(passedState, _userInputResultName);
+}
+int inputNumber(int _startingNumber){
+	ControlsEnd();
+	int _currentNumber = _startingNumber;
+	char _numberTextBuffer[10];
+	gooditoa(_currentNumber,_numberTextBuffer,10);
+	while (1){
+		FpsCapStart();
+
+		ControlsStart();
+		if (WasJustPressed(SCE_CTRL_UP)){
+			_currentNumber+=1;
+			gooditoa(_currentNumber,_numberTextBuffer,10);
+		}else if (WasJustPressed(SCE_CTRL_DOWN)){
+			_currentNumber-=1;
+			if (_currentNumber<0){
+				_currentNumber=0;
+			}
+			gooditoa(_currentNumber,_numberTextBuffer,10);
+		}else if (WasJustPressed(SCE_CTRL_RIGHT)){
+			_currentNumber+=LISTLEFTRIGHTJUMPOFFSET;
+			gooditoa(_currentNumber,_numberTextBuffer,10);
+		}else if (WasJustPressed(SCE_CTRL_LEFT)){
+			_currentNumber-=LISTLEFTRIGHTJUMPOFFSET;
+			if (_currentNumber<0){
+				_currentNumber=0;
+			}
+			gooditoa(_currentNumber,_numberTextBuffer,10);
+		}else if (WasJustPressed(SCE_CTRL_CROSS)){
+			return _currentNumber;
+		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			return _startingNumber;
+		}
+		ControlsEnd();
+
+		StartDrawing();
+		GoodDrawTextColored(0,0,_numberTextBuffer,fontSize,COLORSELECTED);
+		EndDrawing();
+
+		FpsCapWait();
+	}	
+}
+void WriteToDebugFile(const char* stuff){
+	#if PLATFORM == PLAT_VITA
+		FILE *fp;
+		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
+		fprintf(fp,"%s\n",stuff);
+		fclose(fp);
+	#endif
+}
+// Does not clear the debug file at ux0:data/LUAMANGAS/a.txt  , I promise.
+void ClearDebugFile(){
+	#if PLATFORM == PLAT_VITA
+		FILE *fp;
+		fp = fopen("ux0:data/LUAMANGAS/a.txt", "w");
+		fclose(fp);
+	#endif
+}
+void WriteIntToDebugFile(int a){
+	#if PLATFORM == PLAT_VITA
+		FILE *fp;
+		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
+		fprintf(fp,"%d\n", a);
+		fclose(fp);
+	#endif
+}
+// strcpy, but it won't copy from src to dest if the value is 1.
+// You can use this to exclude certian spots
+// I do not mean the ASCII character 1, which is 49.
+void strcpyNO1(char* dest, const char* src){
+	int i;
+	int _destCopyOffset=0;
+	int _srcStrlen = strlen(src);
+	for (i=0;i<_srcStrlen;i++){
+		if (src[i]!=1){
+			dest[_destCopyOffset]=src[i];
+			_destCopyOffset++;
+		}
+	}
+}
+// Same as strlen, but doesn't count any places with the value of 1 as a character.
+int strlenNO1(char* src){
+	int len=0;
+	int i;
+	for (i=0;;i++){
+		if (src[i]=='\0'){
+			break;
+		}else if (src[i]!=1){
+			len++;
+		}
+	}
+	return len;
+}
+#define TEXTBOXY 0
+void popupMessage(const char* _tempMsg, char _waitForAButton){
+	ControlsEnd();
+	// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
+	char message[strlen(_tempMsg)+1];
+	strcpy(message,_tempMsg);
+	short newLineLocations[50];
+	int totalMessageLength = strlen(message);
+	int i, j;
+	signed short _numberOfLines=1;
+	// This will loop through the entire message, looking for where I need to add new lines. When it finds a spot that
+	// needs a new line, that spot in the message will become 0. So, when looking for the place to 
+	int lastNewlinePosition=-1; // If this doesn't start at -1, the first character will be cut off
+	for (i = 0; i < totalMessageLength; i++){
+		if (message[i]==32){ // Only check when we meet a space. 32 is a space in ASCII
+			message[i]='\0';
+			//printf("Space found at %d\n",i);
+			//printf("%s\n",&message[lastNewlinePosition+1]);
+			//printf("%d\n",TextWidth(fontSize,&(message[lastNewlinePosition+1])));
+			if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+				char _didWork=0;
+				for (j=i-1;j>lastNewlinePosition+1;j--){
+					//printf("J:%d\n",j);
+					if (message[j]==32){
+						message[j]='\0';
+						_didWork=1;
+						message[i]=32;
+						lastNewlinePosition=j;
+						_numberOfLines++;
+						break;
+					}
+				}
+				if (_didWork==0){
+					message[i]='\0';
+					lastNewlinePosition=i+1;
+					_numberOfLines++;
+				}
+			}else{
+				message[i]=32;
+			}
+		}
+	}
+	// This code will make a new line if there needs to be one because of the last word
+	if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+		for (j=totalMessageLength-1;j>lastNewlinePosition+1;j--){
+			if (message[j]==32){
+				message[j]='\0';
+				_numberOfLines++;
+				break;
+			}
+		}
+	}
+	// This spot in the message will be the one that's 0 char. The player won't be able to see this character.
+	int currentLetter=0;
+	int currentLine=0;
+	signed int nextCharStorage=-1;
+	char currentlyVisibleLines=screenHeight/currentTextHeight;
+	char frames=0;
+	// This variable is the location of the start of the first VISIBLE line
+	// This will change if the text box has multiple screens because the text is too long
+	int offsetStrlen=0;
+	//  textboxNewCharSpeed
+	ControlsEnd();
+	_numberOfLines-=currentlyVisibleLines;
+	do{
+		FpsCapStart();
+		ControlsStart();
+		int _lastStrlen=0;
+		if (WasJustPressed(SCE_CTRL_CROSS)){
+			if (_numberOfLines<=0){
+				break;
+			}
+			offsetStrlen += strlen(&message[offsetStrlen])+1;
+			_numberOfLines--;
+		}
+		ControlsEnd();
+		StartDrawing();
+		// We need this variable so we know the offset in the message for the text that is for the next line
+		
+		_lastStrlen=0;
+		for (i=0;i<currentlyVisibleLines;i++){
+			GoodDrawTextColored(5,TEXTBOXY+TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
+			// This offset will have the first letter for the next line
+			_lastStrlen = strlen(&message[_lastStrlen+offsetStrlen])+1+_lastStrlen;
+			if (_lastStrlen>=totalMessageLength){
+				break;
+			}
+		}
+		EndDrawing();
+		FpsCapWait();
+	}while(_waitForAButton==1);
+	ControlsEnd();
+	return;
 }
 /*============================================================================*/
 // url, filepath
@@ -126,7 +487,7 @@ int L_CreateDirectory(lua_State* passedState){
 }
 // Should end with a slash
 int L_getMangaFolderRoot(lua_State* passedState){
-	lua_pushstring(passedState,MANGAFOLDERROOT);
+	lua_pushstring(passedState,mangaFolderRoot);
 	return 1;
 }
 // short question, long question, type
@@ -154,75 +515,7 @@ int L_fileExists(lua_State* passedState){
 //============================
 // CHANGE DEPENDING ON UI MODE
 //============================
-// TODO - Slowly scroll results that won't fit on the screen
-// Returns -1 if user cancels
-// Returns 1 based selection
-int showList(char** _currentList, int _listSize, int _startingSelection){
-	ControlsEnd();
-	int i;
-	int j;
-	char _optionsPerScreen;
-	int _selection=_startingSelection;
-	int _selectionListOffset=0;
-	char _listHeightIsMax;
-	if (screenHeight-_listSize*currentTextHeight>0){
-		_optionsPerScreen = _listSize;
-		_listHeightIsMax=1;
-	}else{
-		_optionsPerScreen = screenHeight/currentTextHeight;
-		_listHeightIsMax=0;
-	}
-	_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-	while (1){
-		FpsCapStart();
-		
-		ControlsStart();
-		if (WasJustPressed(SCE_CTRL_DOWN)){
-			_selection = moveCursor(_selection,_listSize,1,1);
-			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-		}else if (WasJustPressed(SCE_CTRL_UP)){
-			_selection = moveCursor(_selection,_listSize,1,-1);
-			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-		}else if (WasJustPressed(SCE_CTRL_RIGHT)){
-			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET);
-			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-		}else if (WasJustPressed(SCE_CTRL_LEFT)){
-			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET*-1);
-			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-		}else if (WasJustPressed(SCE_CTRL_CROSS)){
-			return _selection+1;
-		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
-			return -1;
-		}
-		ControlsEnd();
-
-		StartDrawing();
-		for (i=0;i<_optionsPerScreen;i++){
-			GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
-		}
-		GoodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
-		GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,_currentList[_selection],fontSize,COLORSELECTED);
-		EndDrawing();
-
-		FpsCapWait();
-	}
-}
-// _userInputNumber should be ONE BASED
-void pushUserInput(lua_State* passedState, void* _userInputResults, int _tempType, int _userInputNumber){
-	// Set a global variable to the user's choice
-	// Construct variable name
-	char _userInputResultName[256];
-	sprintf(_userInputResultName,"userInput%02d",_userInputNumber);
-	// Push different type depending on input type
-	if (_tempType==INPUTTYPESTRING){
-		lua_pushstring(passedState,(char*)_userInputResults);
-	}else if (_tempType==INPUTTYPENUMBER || _tempType==INPUTTYPELIST){
-		lua_pushnumber(passedState,*((int*)_userInputResults));
-		printf("pushed %d\n",*((int*)_userInputResults));
-	}
-	printf("var name is %s\n",_userInputResultName);
-	lua_setglobal(passedState, _userInputResultName);
-}
+// Returns false if user quit, true otherwise
 int L_waitForUserInputs(lua_State* passedState){
 	int i;
 	int _selection=0;
@@ -237,7 +530,7 @@ int L_waitForUserInputs(lua_State* passedState){
 	void* _userInputResults[currentQueue]; // Memory is dynamiclly allocated
 
 	char _userDidQuit=0;
-
+	short _colonSpaceWidth=TextWidth(fontSize,": ");
 	// Allocate memory for user's NUMBER AND LIST ANSWERS
 	// String answers will not be allocated yet, they will be set to NULL
 	// Any pointer set to NULL will not be freed
@@ -245,9 +538,10 @@ int L_waitForUserInputs(lua_State* passedState){
 		if (inputTypeQueue[i]==INPUTTYPENUMBER || inputTypeQueue[i]==INPUTTYPELIST){
 			_userInputResults[i] = malloc(sizeof(int));
 			*((int*)_userInputResults[i])=1;
+		}else{
+			_userInputResults[i]=NULL;
 		}
 	}
-
 	// Allow user to input stuff
 	while (1){
 		FpsCapStart();
@@ -282,7 +576,8 @@ int L_waitForUserInputs(lua_State* passedState){
 					lua_pushboolean(L,0);
 				}
 				lua_call(L, 1, 1);
-				if (lua_type(L,-1)==LUA_TTABLE){
+				// If tables return a number, it means that no table avalible. Free old table
+				if (lua_type(L,-1)==LUA_TNUMBER || lua_type(L,-1)==LUA_TTABLE){
 					int j;
 					// Free previous list if it exists
 					if (_listEntries[_currentList]!=NULL){
@@ -291,15 +586,19 @@ int L_waitForUserInputs(lua_State* passedState){
 						}
 						free(_listEntries[_currentList]);
 						_listEntries[_currentList]=NULL;
+						_listEntriesLength[_currentList]=0;
 					}
+				}
+				if (lua_type(L,-1)==LUA_TTABLE){
+					int j;
 					
 					int _lengthOfTable = lua_rawlen(L,-1);
 					_listEntriesLength[_currentList] = _lengthOfTable;
-					_listEntries[_currentList] = malloc(sizeof(char*)*(_lengthOfTable));
+					_listEntries[_currentList] = calloc(1,sizeof(char*)*(_lengthOfTable));
 					for (j=0;j<_listEntriesLength[_currentList];j++){
 						lua_rawgeti(L,1,j+1); // Do j+1 because Lua is stupid
 						char* _currentListEntry = (char*)lua_tostring(L,-1);
-						_listEntries[_currentList][j] = malloc(strlen(_currentListEntry)+1);
+						_listEntries[_currentList][j] = calloc(1,strlen(_currentListEntry)+1);
 						strcpy((_listEntries[_currentList][j]),_currentListEntry);
 						lua_remove(L,-1);
 					}
@@ -307,21 +606,18 @@ int L_waitForUserInputs(lua_State* passedState){
 				// Remove table or nil from stack
 				lua_remove(L,-1);
 				if (_listEntries[_currentList]!=NULL){
-					printf("Here, I can show the table.\n");
-					//for (i=0;i<_listEntriesLength[_currentList];i++){
-					//	printf("Entry %d: %s\n",i,_listEntries[_currentList][i]);
-					//}
 					int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)_userInputResults[_currentList])-1); // Subtract 1 from starting index because result was one based.
 					if (_tempUserAnswer!=-1){
 						*((int*)(_userInputResults[_currentList]))=_tempUserAnswer;
-						printf("answer is %d\n",*((int*)(_userInputResults[_currentList])));
 						pushUserInput(passedState,_userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
-					}else{
-						printf("user did not answer.");
 					}
-				}else{
-					// TODO - Tell the user that this is currently an empty list.
 				}
+			}else if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
+				*((int*)(_userInputResults[_selection])) = inputNumber(*((int*)(_userInputResults[_selection])));
+				pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+			}else if (inputTypeQueue[_selection]==INPUTTYPESTRING){
+				_userInputResults[_selection] = userKeyboardInput(_userInputResults[_selection]!=NULL ? _userInputResults[_selection] : "");
+				pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
 			}
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
 			_userDidQuit=1;
@@ -333,11 +629,22 @@ int L_waitForUserInputs(lua_State* passedState){
 		for (i=0;i<currentQueue;i++){
 			int _currentDrawWidth=cursorWidth+5;
 			GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,shortNameQueue[i],fontSize,COLOROPTION);
-			if (_listEntries[i]!=NULL){
-				_currentDrawWidth+=TextWidth(fontSize,shortNameQueue[i]);
-				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
-				_currentDrawWidth+=TextWidth(fontSize,": ");
-				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)_userInputResults[i])-1],fontSize,COLORSELECTED);
+			_currentDrawWidth+=TextWidth(fontSize,shortNameQueue[i]);
+			GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
+			_currentDrawWidth+=_colonSpaceWidth;
+			if (inputTypeQueue[i]==INPUTTYPELIST){
+				if (_listEntries[i]!=NULL){		
+					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)_userInputResults[i])-1],fontSize,COLORSELECTED);
+				}
+			}else if (inputTypeQueue[i]==INPUTTYPENUMBER){
+				char _tempNumberBuffer[10];
+				gooditoa(*((int*)_userInputResults[i]),_tempNumberBuffer,10);
+				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,fontSize,COLORSELECTED);
+			}else if (inputTypeQueue[i]==INPUTTYPESTRING){
+				if (_userInputResults[i]!=NULL){
+					// TODO - Draw text input
+					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_userInputResults[i],fontSize,COLORSELECTED);
+				}
 			}
 		}
 		GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
@@ -362,97 +669,18 @@ int L_waitForUserInputs(lua_State* passedState){
 	}
 	return 1;
 }
-/*
-// Returns false if user quit, true otherwise
-int L_waitForUserInputs(lua_State* passedState){
-	int i;
-	void* userInputResults[currentQueue]; // Memory is dynamiclly allocated
-	char lastTypedLine[256];
-	char _userDidQuit=0;
-	for (i=0;i<currentQueue;i++){
-		// Print info
-		printf("===\n%s\n===\n%s\n",shortNameQueue[i],longNameQueue[i]);
-		// Specific to type of input
-		if (inputTypeQueue[i]==INPUTTYPENUMBER){
-			userInputResults[i] = malloc(sizeof(int));
-			scanf("%d",(int*)userInputResults[i]);
-		}else if (inputTypeQueue[i]==INPUTTYPESTRING){
-			scanf("%[^\n]",lastTypedLine);
-			userInputResults[i] = malloc(strlen(lastTypedLine)+1);
-			strcpy(userInputResults[i],lastTypedLine);
-		}else if (inputTypeQueue[i]==INPUTTYPELIST){
-			printf("===\n");
-
-			char _listFunctionName[256];
-			sprintf(_listFunctionName,"InitList%02d",i+1);
-			if (lua_getglobal(L,_listFunctionName)==0){
-				printf("Failed to get global function %s\n",_listFunctionName);
-				return 0;
-			}
-			// Pass isFirstTime to function
-			lua_pushboolean(L,1);
-			lua_call(L, 1, 1);
-
-			if (lua_type(L,-1)==LUA_TTABLE){
-				int j;
-				int _lengthOfTable = lua_rawlen(L,-1);
-				for (j=1;j<=_lengthOfTable;j++){
-					lua_rawgeti(L,1,j);
-					printf("%d: %s\n",j,lua_tostring(L,-1));
-					lua_remove(L,-1);
-				}
-			}else{
-				printf("DID NOT REUTRN TABLE!");
-				return 0;
-			}
-			// Remove table or nil from stack
-			lua_remove(L,-1);
-			printf("===\n");
-			// Copy of code from string type input
-			printf("Entry from list you want?\n");
-			userInputResults[i] = malloc(sizeof(int));
-			scanf("%d",(int*)userInputResults[i]);
-		}
-
-
-		// Set a global variable to the user's choice
-		// Construct variable name
-		char _userInputResultName[256];
-		sprintf(_userInputResultName,"userInput%02d",i+1);
-		// Push different type depending on input type
-		if (inputTypeQueue[i]==INPUTTYPESTRING){
-			lua_pushstring(passedState,(char*)userInputResults[i]);
-		}else if (inputTypeQueue[i]==INPUTTYPENUMBER || inputTypeQueue[i]==INPUTTYPELIST){
-			lua_pushnumber(passedState,*((int*)userInputResults[i]));
-		}
-		lua_setglobal(L, _userInputResultName);
-	}
-
-	// Free memory
-	for (i=0;i<currentQueue;i++){
-		free(shortNameQueue[currentQueue]);
-		free(longNameQueue[currentQueue]);
-		free(userInputResults[currentQueue]);
-	}
-	currentQueue=0;
-
-	if (_userDidQuit==1){
-		lua_pushboolean(passedState,0);
-	}else{
-		lua_pushboolean(passedState,1);
-	}
-	return 1;
-}*/
 int L_userPopupMessage(lua_State* passedState){
-	printf(lua_tostring(passedState,1));
-	printf("\n*** Press any key to continue... ***");
-	getchar();
+	popupMessage(lua_tostring(passedState,-1),1);
+	return 0;
+}
+int L_showStatus(lua_State* passedState){
+	popupMessage(lua_tostring(passedState,-1),0);
 	return 0;
 }
 void MakeLuaUseful(){
 	LUAREGISTER(L_downloadString,"downloadString");
 	LUAREGISTER(L_downloadFile,"downloadFile");
-	LUAREGISTER(L_fopen,"fopen"); // TODO - Following (3) are untested. Also make functions for rest of IO stuff
+	LUAREGISTER(L_fopen,"fopen");
 	LUAREGISTER(L_fclose,"fclose");
 	LUAREGISTER(L_fread,"fread");
 	LUAREGISTER(L_CreateDirectory,"createDirectory");
@@ -463,12 +691,12 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_getVersion,"getDownloaderVersion");
 	LUAREGISTER(L_fileExists,"fileExists");
 	LUAREGISTER(L_userPopupMessage,"popupMessage");
+	LUAREGISTER(L_showStatus,"showStatus");
 }
 /*============================================================================*/
 void init(){
-	#if DOWNLOADTYPE == DOWNLOAD_CURL
-		initCurl();
-	#endif
+	ClearDebugFile();
+	initDownload();
 	L = luaL_newstate();
 	luaL_openlibs(L);
 	MakeLuaUseful();
@@ -476,31 +704,38 @@ void init(){
 	initGraphics(640,480, &screenWidth, &screenHeight);
 
 	// Text
-	LoadFont("./LiberationSans-Regular.ttf");
+	FixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
+	LoadFont(tempPathFixBuffer);
 	currentTextHeight = TextHeight(fontSize);
 	cursorWidth = TextWidth(fontSize,">");
+
+	// Make data folder
+	FixPath("",tempPathFixBuffer,TYPE_DATA);
+	createDirectory(tempPathFixBuffer);
+
+	FixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
+	downloadersLocation = malloc(strlen(tempPathFixBuffer)+1);
+	strcpy(downloadersLocation,tempPathFixBuffer);
+	FixPath(CONSTANTMANGAFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
+	mangaFolderRoot = malloc(strlen(tempPathFixBuffer)+1);
+	strcpy(mangaFolderRoot,tempPathFixBuffer);
+
+	createDirectory(mangaFolderRoot);
+
+	FixPath("assets/Init.lua",tempPathFixBuffer,TYPE_EMBEDDED);
+	luaL_dofile(L,tempPathFixBuffer);
+	FixPath("assets/GlobalTracking.lua",tempPathFixBuffer,TYPE_EMBEDDED);
+	luaL_dofile(L,tempPathFixBuffer);
 }
 int main(int argc, char *argv[]){
 	init();
-	//while (1){
-	//	StartDrawing();
-	//	GoodDrawTextColored(0,0,"noob",fontSize,255,0,0);
-	//	EndDrawing();
-	//	ControlsStart();
-	//	ControlsEnd();
-	//}
-	createDirectory(MANGAFOLDERROOT);
 	// We do the cleanup for you!
-	luaL_dofile(L,"./Init.lua");
-	luaL_dofile(L,"./GlobalTracking.lua");
-	lua_pushstring(L,MANGAFOLDERROOT);
-	lua_setglobal(L,"downloadFolder");
 	STARTTRACKINGGLOBALS();
-
+	
 	char* luaFileToUse = "DynastyScans";
 	
-	char luaFilenameComplete[strlen(luaFileToUse)+strlen(DOWNLOADERSLOCATION)+5];
-	strcpy(luaFilenameComplete,DOWNLOADERSLOCATION);
+	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
+	strcpy(luaFilenameComplete,downloadersLocation);
 	strcat(luaFilenameComplete,luaFileToUse);
 	strcat(luaFilenameComplete,".lua");
 
@@ -520,8 +755,3 @@ int main(int argc, char *argv[]){
 	quitApplication();
 	return 0;
 }
-/*
-TOOD - Status. Tell the user what's going on.
-	I imagine this as a bar taking up the bottom 1/3 of the screen
-	It can also display the description of the option
-*/

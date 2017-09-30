@@ -49,6 +49,7 @@ Temporary Items
 #mystuff
 bin/
 lib/
+trash/
 *.elf
 *.vpk
 *.velf
