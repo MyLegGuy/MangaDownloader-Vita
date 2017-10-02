@@ -220,7 +220,7 @@
 			char* _tempBuffer=NULL;
 			int _tempIntBuffer;
 			getline(&_tempBuffer,&_tempIntBuffer,stdin);
-			removeNewline(&_tempBuffer);
+			removeNewline(_tempBuffer);
 			return _tempBuffer;
 		}
 	#else

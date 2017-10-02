@@ -22,6 +22,9 @@ TODO - Settings saving
 #define COLOROPTION 255,255,255
 #define COLORSELECTED 0,255,0
 #define COLORSTATUS COLOROPTION
+#define COLORINVALID 255,0,0
+#define COLORVALID 0,255,0
+#define COLORMAYBE 255,255,0
 // For lists and number input, how much you move when pressing left or right
 #define LISTLEFTRIGHTJUMPOFFSET 10
 
@@ -57,13 +60,18 @@ int cursorWidth;
 // Fixed paths
 char* mangaFolderRoot;
 char* downloadersLocation;
+char* optionsLocation;
 // Queue
 char* shortNameQueue[MAXQUEUE];
 char* longNameQueue[MAXQUEUE];
 char inputTypeQueue[MAXQUEUE];
+void* userInputResults[MAXQUEUE]; // Memory is dynamiclly allocated
 int currentQueue=0;
 // Number of times L_waitForUserInputs has been called in this script
 int numberOfPrompts=0;
+// Taken from a local variable.
+// MAY NOT EXIST AFTER A SCRIPT FINISHES
+char* currentScriptName;
 //===============
 // OPTIONS
 //===============
@@ -391,6 +399,77 @@ void freeQueue(int _maxQueue){
 		}
 	}
 }
+void resetScriptData(){
+	int i;
+	for (i=0;i<MAXQUEUE;i++){
+		inputTypeQueue[i]=INPUTTYPENONE;
+	}
+	freeQueue(MAXQUEUE);
+	currentQueue=0;
+	numberOfPrompts=0;
+}
+char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
+	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
+	sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot);
+	return _compiledOptionsPath;
+}
+// _listNumber should be 1 based
+// Returns 1 if worked
+// Adds one to the stack
+char callListInit(lua_State* passedState, char _listNumber, char _firstTime){
+	char _listFunctionName[11];
+	sprintf(_listFunctionName,"InitList%02d",_listNumber);
+	if (lua_getglobal(passedState,_listFunctionName)==0){
+		printf("Failed to get global function %s\n",_listFunctionName);
+		return 0;
+	}
+	lua_pushnumber(passedState,_firstTime);
+	lua_call(passedState, 1, 1);
+	return 1;
+}
+// _listNumber should be 1 based
+char callListFinish(lua_State* passedState, char _listNumber){
+	char _listFunctionName[10];
+	sprintf(_listFunctionName,"EndList%02d",_listNumber);
+	if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
+		lua_call(passedState, 0, 0);
+	}
+	lua_pop(passedState,1);
+	return 1;
+}
+
+// Removes one from the stack
+int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength){
+	// If tables return a number, it means that no table avalible. Free old table
+	if (lua_type(passedState,-1)==LUA_TNUMBER || lua_type(passedState,-1)==LUA_TTABLE){
+		int j;
+		// Free previous list if it exists
+		if ((*_listEntries)!=NULL){
+			for (j=0;j<_previousLength;j++){
+				free((*_listEntries)[j]);
+			}
+			free((*_listEntries));
+			(*_listEntries)=NULL;
+		}
+	}
+	int _lengthOfTable=_previousLength;
+	if (lua_type(passedState,-1)==LUA_TTABLE){
+		int j;
+		_lengthOfTable = lua_rawlen(passedState,-1);
+		//_listEntriesLength[_currentList] = _lengthOfTable;
+		*_listEntries = calloc(1,sizeof(char*)*(_lengthOfTable));
+		for (j=0;j<_lengthOfTable;j++){
+			lua_rawgeti(passedState,-1,j+1); // Do j+1 because Lua is stupid
+			char* _currentListEntry = (char*)lua_tostring(passedState,-1);
+			(*_listEntries)[j] = calloc(1,strlen(_currentListEntry)+1);
+			strcpy(((*_listEntries)[j]),_currentListEntry);
+			lua_remove(passedState,-1);
+		}
+	}
+	// Remove table or nil from stack
+	lua_remove(passedState,-1);
+	return _lengthOfTable;
+}
 /*============================================================================*/
 // url, filepath
 int L_downloadFile(lua_State* passedState){
@@ -409,7 +488,7 @@ int L_downloadString(lua_State* passedState){
 	return 1;
 }
 int L_fopen(lua_State* passedState){
-	lua_pushlightuserdata(L,(void*)fopen(lua_tostring(passedState,1),lua_tostring(passedState,2)));
+	lua_pushlightuserdata(passedState,(void*)fopen(lua_tostring(passedState,1),lua_tostring(passedState,2)));
 	return 1;
 }
 int L_fclose(lua_State* passedState){
@@ -457,12 +536,48 @@ int L_fileExists(lua_State* passedState){
 	lua_pushboolean(passedState,checkFileExist(lua_tostring(passedState,1)));
 	return 1;
 }
+// Slot, value
+int L_setUserInput(lua_State* passedState){
+	int _slot = lua_tonumber(passedState,1)-1;
+	if (lua_type(passedState,2)==LUA_TNUMBER){
+		*((int*)userInputResults[_slot])=lua_tonumber(passedState,2);
+	}else if (lua_type(passedState,2)==LUA_TSTRING){
+		const char* _toSetString = lua_tostring(passedState,2);
+		(userInputResults[_slot])=malloc(strlen(_toSetString)+1);
+		strcpy(userInputResults[_slot],_toSetString);
+	}else{
+		printf("Unknwon set type. No data set\n");
+	}
+	pushUserInput(passedState,userInputResults[_slot],inputTypeQueue[_slot],_slot+1);
+}
 //============================
 // CHANGE DEPENDING ON UI MODE
 //============================
+int L_assignListData(lua_State* passedState){
+	/*
+	assignListData
+	*/
+}
+int L_printListStuff(lua_State* passedState){
+	char*** _lists = ((char***)lua_touserdata(passedState,1));
+	int* _listLengths = ((int*)lua_touserdata(passedState,2));
+	printf("We tryna print");
+	printf("Adress of legnths %p\n",&_listLengths);
+	if (_listLengths==NULL){
+		printf("is null.\n");
+	}
+	printf("First length is %s\n",_lists[0][0]);
+	printf("First length is %d\n",_listLengths[0]);
+}
 // Returns false if user quit, true otherwise
 int L_waitForUserInputs(lua_State* passedState){
 	numberOfPrompts++;
+	char _specificOptionsNumber=255;
+	char _saveAndLoadEnabled=0;
+	if (lua_type(passedState,1)==LUA_TNUMBER){
+		_specificOptionsNumber = lua_tonumber(passedState,1);
+		_saveAndLoadEnabled=1;
+	}
 	int i;
 	int _selection=0;
 	// THIS IS NOT A TRIPLE POINTER BECAUSE IT'S AN ARRAY OF DOUBLE POINTERS!
@@ -473,20 +588,31 @@ int L_waitForUserInputs(lua_State* passedState){
 	for (i=0;i<currentQueue;i++){
 		_listEntries[i]=NULL;
 	}
-	void* _userInputResults[currentQueue]; // Memory is dynamiclly allocated
+	// Give the list to Lua for use with Lua functions for lists.
+	lua_pushlightuserdata(passedState,_listEntries);
+	lua_setglobal(passedState,"currentQueueCLists");
+	lua_pushlightuserdata(passedState,_listEntriesLength);
+	lua_setglobal(passedState,"currentQueueCListsLength");
 
+	unsigned char _saveOrLoadSlot=0;
 	char _userDidQuit=0;
 	short _colonSpaceWidth=TextWidth(fontSize,": ");
+	// - slot 1]
+	char _slotString[13] = " - slot 0]";
+	char _currentSlotExists;
+	char* _compiledOptionsPath = getOptionsFileLocation(_saveOrLoadSlot,_specificOptionsNumber);
+	_currentSlotExists = checkFileExist(_compiledOptionsPath);
+
 	// Allocate memory for user's NUMBER AND LIST ANSWERS
 	// String answers will not be allocated yet, they will be set to NULL
 	// Any pointer set to NULL will not be freed
 	for (i=0;i<currentQueue;i++){
 		if (inputTypeQueue[i]==INPUTTYPENUMBER || inputTypeQueue[i]==INPUTTYPELIST){
-			_userInputResults[i] = malloc(sizeof(int));
-			*((int*)_userInputResults[i])=1;
-			pushUserInput(passedState,_userInputResults[i],inputTypeQueue[i],i+1);
+			userInputResults[i] = malloc(sizeof(int));
+			*((int*)userInputResults[i])=1;
+			pushUserInput(passedState,userInputResults[i],inputTypeQueue[i],i+1);
 		}else{
-			_userInputResults[i]=NULL;
+			userInputResults[i]=NULL;
 		}
 	}
 	// Allow user to input stuff
@@ -495,94 +621,150 @@ int L_waitForUserInputs(lua_State* passedState){
 		ControlsStart();
 		if (WasJustPressed(SCE_CTRL_DOWN)){
 			_selection++;
-			if (_selection>currentQueue+1){
+			if (_saveAndLoadEnabled==1 && _selection>currentQueue+2 || _saveAndLoadEnabled==0 && _selection>currentQueue){
 				_selection=0;
 			}
 		}else if (WasJustPressed(SCE_CTRL_UP)){
 			_selection--;
 			if (_selection<0){
-				_selection=currentQueue+1;
+				if (_saveAndLoadEnabled==1){
+					_selection=currentQueue+2;
+				}else{
+					_selection=currentQueue;
+				}
 			}
 		}else if (WasJustPressed(SCE_CTRL_LEFT)){
-			if (_selection<MAXQUEUE){
+			if (_selection<currentQueue){
 				if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
-					(*((int*)(_userInputResults[_selection])))--;
-					pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+					(*((int*)(userInputResults[_selection])))--;
+					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+				}
+			}else{
+				if (_selection==currentQueue || _selection==currentQueue+1){
+					_saveOrLoadSlot--;
+					sprintf(_slotString," - slot %d]",_saveOrLoadSlot);
+					_compiledOptionsPath = getOptionsFileLocation(_saveOrLoadSlot,_specificOptionsNumber);
+					_currentSlotExists = checkFileExist(_compiledOptionsPath);
 				}
 			}
 		}else if (WasJustPressed(SCE_CTRL_RIGHT)){
-			if (_selection<MAXQUEUE){
+			if (_selection<currentQueue){
 				if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
-					(*((int*)(_userInputResults[_selection])))++;
-					pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+					(*((int*)(userInputResults[_selection])))++;
+					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+				}
+			}else{
+				if (_selection==currentQueue || _selection==currentQueue+1){
+					_saveOrLoadSlot++;
+					sprintf(_slotString," - slot %d]",_saveOrLoadSlot);
+					_compiledOptionsPath = getOptionsFileLocation(_saveOrLoadSlot,_specificOptionsNumber);
+					_currentSlotExists = checkFileExist(_compiledOptionsPath);
 				}
 			}
 		}else if (WasJustPressed(SCE_CTRL_CROSS)){
-			// If they pressed the save and load button
-			if (_selection==currentQueue){
-				printf("save&load\n");
-			}
-			// If they pressed the done button
-			if (_selection>=currentQueue+1){
-				break;
-			}
-			if (inputTypeQueue[_selection]==INPUTTYPELIST){
-				int _currentList=_selection;
-				
-				char _listFunctionName[256];
-				sprintf(_listFunctionName,"InitList%02d",_currentList+1);
-				if (lua_getglobal(L,_listFunctionName)==0){
-					printf("Failed to get global function %s\n",_listFunctionName);
-					return 0;
-				}
-				if (_listEntries[_currentList]==NULL){
-					lua_pushboolean(L,1);
-				}else{
-					lua_pushboolean(L,0);
-				}
-				lua_call(L, 1, 1);
-				// If tables return a number, it means that no table avalible. Free old table
-				if (lua_type(L,-1)==LUA_TNUMBER || lua_type(L,-1)==LUA_TTABLE){
-					int j;
-					// Free previous list if it exists
-					if (_listEntries[_currentList]!=NULL){
-						for (j=0;j<_listEntriesLength[_currentList];j++){
-							free(_listEntries[_currentList][j]);
+			if (_saveAndLoadEnabled==1){
+				if (_selection==currentQueue){
+					_currentSlotExists=1;
+					FILE* fp = fopen(_compiledOptionsPath,"w");
+					if (lua_getglobal(passedState,"SCRIPTVERSION")==LUA_TNUMBER){
+						fprintf(fp,"%d\n",(int)lua_tonumber(passedState,1));
+					}else{
+						printf("!!!!!!!!!!!!!!!\nSCRIPTVERSION\nnot found. PLZ FIX!\n!!!!!!!!!!");
+						fprintf(fp,"%d\n",0);
+					}
+					lua_pop(passedState,1);
+					if (lua_getglobal(passedState,"SAVEVARIABLE")==LUA_TNUMBER){
+						fprintf(fp,"%d\n",(int)lua_tonumber(passedState,-1));
+					}else{
+						printf("!!!!!!!!!!!!!!!\nSAVEVARIABLE\nnot found. PLZ FIX!\n!!!!!!!!!!");
+						fprintf(fp,"%d\n",0);
+					}
+					lua_pop(passedState,1);
+					for (i=0;i<currentQueue;i++){
+						if (inputTypeQueue[i]==INPUTTYPENUMBER){
+							fprintf(fp,"%d\n",*((int*)userInputResults[i]));
+						}else if (inputTypeQueue[i]==INPUTTYPELIST){
+							if (_listEntries[i]==NULL){
+								fprintf(fp,"%s\n","(Undefined.)");
+							}else{
+								fprintf(fp,"%s\n",_listEntries[i][(*((int*)userInputResults[i]))-1]);
+							}
+						}else if (inputTypeQueue[i]==INPUTTYPESTRING){
+							if (userInputResults[i]==NULL){
+								fprintf(fp,"%s\n","(empty)");
+							}else{
+								fprintf(fp,"%s\n",userInputResults[i]);
+							}
 						}
-						free(_listEntries[_currentList]);
-						_listEntries[_currentList]=NULL;
-						_listEntriesLength[_currentList]=0;
 					}
+					fclose(fp); // Save button
+				}else if (_selection==currentQueue+1){
+					if (_currentSlotExists==1){
+						FILE* fp = fopen(_compiledOptionsPath,"r");
+						char _lastReadLine[256];
+						fgets(_lastReadLine, sizeof(_lastReadLine), fp);
+						lua_pushstring(passedState,_lastReadLine);
+						lua_setglobal(passedState, "loadedScriptVersion");
+						
+						fgets(_lastReadLine, sizeof(_lastReadLine), fp);
+						lua_pushstring(passedState,_lastReadLine);
+						lua_setglobal(passedState, "loadedSaveVariable");
+						i=1;
+						while (fgets(_lastReadLine, sizeof(_lastReadLine), fp)) {
+							removeNewline(_lastReadLine);
+							// Push
+							char _userInputResultName[256];
+							sprintf(_userInputResultName,"userLoad%02d",i);
+							lua_pushstring(passedState,_lastReadLine);
+							lua_setglobal(passedState, _userInputResultName);
+							i++;
+						}
+						fclose(fp);
+						// Pushes number of prompts so far
+						lua_pushnumber(passedState,numberOfPrompts);
+						lua_setglobal(passedState,"numberOfPrompts");
+						// Adds function to stack
+						if (lua_getglobal(passedState,"onOptionsLoad")!=0){
+							lua_call(passedState, 0, 0);
+						}
+						// Call all list init functions
+						for (i=0;i<currentQueue;i++){
+							if (inputTypeQueue[i]==INPUTTYPELIST){
+								callListInit(passedState,i+1,2);
+								_listEntriesLength[i] = assignAfterListInit(passedState,&(_listEntries[i]),_listEntriesLength[i]);
+							}
+						}
+					}else{
+						popupMessage("Slot file does not exist.",1);
+					} // Load button
+				}else if (_selection>=currentQueue+2){
+					break;
 				}
-				if (lua_type(L,-1)==LUA_TTABLE){
-					int j;
-					
-					int _lengthOfTable = lua_rawlen(L,-1);
-					_listEntriesLength[_currentList] = _lengthOfTable;
-					_listEntries[_currentList] = calloc(1,sizeof(char*)*(_lengthOfTable));
-					for (j=0;j<_listEntriesLength[_currentList];j++){
-						lua_rawgeti(L,1,j+1); // Do j+1 because Lua is stupid
-						char* _currentListEntry = (char*)lua_tostring(L,-1);
-						_listEntries[_currentList][j] = calloc(1,strlen(_currentListEntry)+1);
-						strcpy((_listEntries[_currentList][j]),_currentListEntry);
-						lua_remove(L,-1);
+			}else{
+				if (_selection>=currentQueue){
+					break;
+				}
+			}
+			if (_selection<currentQueue){
+				if (inputTypeQueue[_selection]==INPUTTYPELIST){
+					int _currentList=_selection;
+					callListInit(passedState,_currentList+1,_listEntries[_currentList]==NULL);
+					_listEntriesLength[_currentList] = assignAfterListInit(passedState,&(_listEntries[_currentList]),_listEntriesLength[_currentList]);
+					if (_listEntries[_currentList]!=NULL){
+						int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1); // Subtract 1 from starting index because result was one based.
+						if (_tempUserAnswer!=-1){
+							*((int*)(userInputResults[_currentList]))=_tempUserAnswer;
+							pushUserInput(passedState,userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
+						}
+						callListFinish(passedState,_currentList+1);
 					}
+				}else if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
+					*((int*)(userInputResults[_selection])) = inputNumber(*((int*)(userInputResults[_selection])));
+					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+				}else if (inputTypeQueue[_selection]==INPUTTYPESTRING){
+					userInputResults[_selection] = userKeyboardInput(userInputResults[_selection]!=NULL ? userInputResults[_selection] : "",shortNameQueue[_selection],99);
+					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
 				}
-				// Remove table or nil from stack
-				lua_remove(L,-1);
-				if (_listEntries[_currentList]!=NULL){
-					int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)_userInputResults[_currentList])-1); // Subtract 1 from starting index because result was one based.
-					if (_tempUserAnswer!=-1){
-						*((int*)(_userInputResults[_currentList]))=_tempUserAnswer;
-						pushUserInput(passedState,_userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
-					}
-				}
-			}else if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
-				*((int*)(_userInputResults[_selection])) = inputNumber(*((int*)(_userInputResults[_selection])));
-				pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
-			}else if (inputTypeQueue[_selection]==INPUTTYPESTRING){
-				_userInputResults[_selection] = userKeyboardInput(_userInputResults[_selection]!=NULL ? _userInputResults[_selection] : "",shortNameQueue[_selection],99);
-				pushUserInput(passedState,_userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
 			}
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
 			_userDidQuit=1;
@@ -598,31 +780,44 @@ int L_waitForUserInputs(lua_State* passedState){
 			GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
 			_currentDrawWidth+=_colonSpaceWidth;
 			if (inputTypeQueue[i]==INPUTTYPELIST){
-				if (_listEntries[i]!=NULL){		
-					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)_userInputResults[i])-1],fontSize,COLORSELECTED);
+				if (_listEntries[i]!=NULL){
+					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)userInputResults[i])-1],fontSize,COLORSELECTED);
 				}
 			}else if (inputTypeQueue[i]==INPUTTYPENUMBER){
 				char _tempNumberBuffer[10];
-				gooditoa(*((int*)_userInputResults[i]),_tempNumberBuffer,10);
+				gooditoa(*((int*)userInputResults[i]),_tempNumberBuffer,10);
 				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,fontSize,COLORSELECTED);
 			}else if (inputTypeQueue[i]==INPUTTYPESTRING){
-				if (_userInputResults[i]!=NULL){
-					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_userInputResults[i],fontSize,COLORSELECTED);
+				if (userInputResults[i]!=NULL){
+					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,userInputResults[i],fontSize,COLORSELECTED);
 				}
 			}
 		}
-		GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Save or Load Options",fontSize,COLOROPTION);
-		GoodDrawTextColored(cursorWidth+5,currentTextHeight*(i+1),"Done",fontSize,COLOROPTION);
+		if (_saveAndLoadEnabled==1){
+			GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"[Save",fontSize,COLOROPTION);
+			GoodDrawTextColored(cursorWidth+5,currentTextHeight*(i+1),"[Load",fontSize,COLOROPTION);
+			if (_currentSlotExists==1){
+			GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORMAYBE);
+			GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORVALID);
+			}else{
+			GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORVALID);
+			GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORINVALID);
+			}
+			GoodDrawTextColored(cursorWidth+5,currentTextHeight*(i+2),"Done",fontSize,COLOROPTION);
+		}else{
+
+			GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
+		}
 		EndDrawing();
-	
+		
 		FpsCapWait();
 	}
-
 	// Free memory
+	free(_compiledOptionsPath);
 	freeQueue(currentQueue);
 	for (i=0;i<currentQueue;i++){
-		if (_userInputResults[currentQueue]!=NULL){ // Empty string inputs will be NULL pointer
-			free(_userInputResults[i]);
+		if (userInputResults[currentQueue]!=NULL){ // Empty string inputs will be NULL pointer
+			free(userInputResults[i]);
 		}
 	}
 	currentQueue=0;
@@ -656,6 +851,9 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_fileExists,"fileExists");
 	LUAREGISTER(L_userPopupMessage,"popupMessage");
 	LUAREGISTER(L_showStatus,"showStatus");
+	LUAREGISTER(L_setUserInput,"setUserInput");
+	LUAREGISTER(L_printListStuff,"printListStuff");
+	LUAREGISTER(L_assignListData,"assignListData");
 }
 /*============================================================================*/
 void init(){
@@ -677,33 +875,32 @@ void init(){
 	FixPath("",tempPathFixBuffer,TYPE_DATA);
 	createDirectory(tempPathFixBuffer);
 
+	// Construct fixed paths
 	FixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
 	downloadersLocation = malloc(strlen(tempPathFixBuffer)+1);
 	strcpy(downloadersLocation,tempPathFixBuffer);
 	FixPath(CONSTANTMANGAFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
 	mangaFolderRoot = malloc(strlen(tempPathFixBuffer)+1);
 	strcpy(mangaFolderRoot,tempPathFixBuffer);
+	FixPath(CONSTANTOPTIONSFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
+	optionsLocation = malloc(strlen(tempPathFixBuffer)+1);
+	strcpy(optionsLocation,tempPathFixBuffer);
 
 	createDirectory(mangaFolderRoot);
+	createDirectory(optionsLocation);
 
 	FixPath("assets/Init.lua",tempPathFixBuffer,TYPE_EMBEDDED);
 	luaL_dofile(L,tempPathFixBuffer);
 	FixPath("assets/GlobalTracking.lua",tempPathFixBuffer,TYPE_EMBEDDED);
 	luaL_dofile(L,tempPathFixBuffer);
 }
-void resetScriptData(){
-	int i;
-	for (i=0;i<MAXQUEUE;i++){
-		inputTypeQueue[i]=INPUTTYPENONE;
-	}
-	freeQueue(MAXQUEUE);
-	currentQueue=0;
-	numberOfPrompts=0;
-}
 void doScript(char* luaFileToUse){
 	resetScriptData();
+	currentScriptName=luaFileToUse;
 	// We do the cleanup for you!
 	STARTTRACKINGGLOBALS();
+
+	
 
 	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
 	strcpy(luaFilenameComplete,downloadersLocation);
@@ -725,7 +922,7 @@ void doScript(char* luaFileToUse){
 int main(int argc, char *argv[]){
 	init();
 
-	doScript("MangaReader");	
+	doScript("DynastyScans");	
 
 	// End
 	quitApplication();

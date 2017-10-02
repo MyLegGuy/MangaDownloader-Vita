@@ -233,15 +233,15 @@
 	#endif
 
 	// Removes all 0x0D and 0x0A from last two characters of string by moving null character.
-	void removeNewline(char** _toRemove){
-		int _cachedStrlen = strlen(*_toRemove);
+	void removeNewline(char* _toRemove){
+		int _cachedStrlen = strlen(_toRemove);
 		int i;
 		for (i=0;i!=2;i++){
-			if (!(((*_toRemove)[_cachedStrlen-(i+1)]==0x0A) || ((*_toRemove)[_cachedStrlen-(i+1)]==0x0D))){
+			if (!(((_toRemove)[_cachedStrlen-(i+1)]==0x0A) || ((_toRemove)[_cachedStrlen-(i+1)]==0x0D))){
 				break;
 			}
 		}
-		(*_toRemove)[_cachedStrlen-i] = '\0';
+		(_toRemove)[_cachedStrlen-i] = '\0';
 	}
 
 	// Returns number of elements read
