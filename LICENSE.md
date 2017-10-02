@@ -1,4 +1,5 @@
 This does not apply if the file says it's under a different license.
+License files that come with the program in binary form can be found in /VpkContents/License. When you have the program installed, they can be found in ux0:app/LUAMANGAS/License by default.
 ======
 Copyright (c) 2017 MyLegGuy
 

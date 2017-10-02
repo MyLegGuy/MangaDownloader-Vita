@@ -3,6 +3,7 @@ TODO - Queue multiple chapters?
 	New input type INPUTTYPENUMBERQUEUE?
 TODO - Slowly scroll results that won't fit on the screen
 	List results, I mean.
+TODO - Downloading as you read would be really cool.
 */
 #define VERSION 1
 
