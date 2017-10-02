@@ -1,7 +1,8 @@
 /*
-TODO LIST
----------
-
+TODO - Queue multiple chapters?
+	New input type INPUTTYPENUMBERQUEUE?
+TODO - Slowly scroll results that won't fit on the screen
+	List results, I mean.
 */
 #define VERSION 1
 
@@ -51,6 +52,7 @@ TODO LIST
 #include "Download.h"
 #include "FpsCapper.h"
 #include "KeyboardCode.h"
+#include "OpenBSDStrStr.h"
 
 /*============================================================================*/
 lua_State* L;
@@ -111,7 +113,6 @@ int moveCursor(int _selection, int _listSize, char _canWrap, int _amount){
 void gooditoa(int _num, char* _buffer, int _uselessBase){
 	sprintf(_buffer, "%d", _num);
 }
-// TODO - Slowly scroll results that won't fit on the screen
 // Returns -1 if user cancels
 // Returns 1 based selection
 int showList(char** _currentList, int _listSize, int _startingSelection){
@@ -164,7 +165,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 			_lastUserSearchTerm = _tempUserAnswer;
 			//_lastUserSearchTerm = 
 			for (i=0;i<_listSize;i++){
-				if (strstr(_currentList[i],_lastUserSearchTerm)!=NULL){
+				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
 					_selection=i;
 					_lastSearchResult=i;
 					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
@@ -173,7 +174,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 			}
 		}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
 			for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
-				if (strstr(_currentList[i],_lastUserSearchTerm)!=NULL){
+				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
 					_selection=i;
 					_lastSearchResult=i;
 					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
@@ -421,7 +422,7 @@ char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
 // Returns 1 if worked
 // Adds one to the stack
 char callListInit(lua_State* passedState, char _listNumber, char _firstTime){
-	char _listFunctionName[11];
+	char _listFunctionName[12];
 	sprintf(_listFunctionName,"InitList%02d",_listNumber);
 	if (lua_getglobal(passedState,_listFunctionName)==0){
 		printf("Failed to get global function %s\n",_listFunctionName);
@@ -433,7 +434,7 @@ char callListInit(lua_State* passedState, char _listNumber, char _firstTime){
 }
 // _listNumber should be 1 based
 char callListFinish(lua_State* passedState, char _listNumber){
-	char _listFunctionName[10];
+	char _listFunctionName[11];
 	sprintf(_listFunctionName,"EndList%02d",_listNumber);
 	if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
 		lua_call(passedState, 0, 0);
@@ -554,6 +555,7 @@ int L_setUserInput(lua_State* passedState){
 		printf("Unknwon set type. No data set\n");
 	}
 	pushUserInput(passedState,userInputResults[_slot],inputTypeQueue[_slot],_slot+1);
+	return 0;
 }
 //============================
 // CHANGE DEPENDING ON UI MODE
@@ -575,6 +577,7 @@ int L_printListStuff(lua_State* passedState){
 	}
 	printf("First length is %s\n",_lists[0][0]);
 	printf("First length is %d\n",_listLengths[0]);
+	return 0;
 }
 // Returns false if user quit, true otherwise
 int L_waitForUserInputs(lua_State* passedState){
@@ -629,7 +632,7 @@ int L_waitForUserInputs(lua_State* passedState){
 		ControlsStart();
 		if (WasJustPressed(SCE_CTRL_DOWN)){
 			_selection++;
-			if (_saveAndLoadEnabled==1 && _selection>currentQueue+2 || _saveAndLoadEnabled==0 && _selection>currentQueue){
+			if ((_saveAndLoadEnabled==1 && _selection>currentQueue+2) || (_saveAndLoadEnabled==0 && _selection>currentQueue)){
 				_selection=0;
 			}
 		}else if (WasJustPressed(SCE_CTRL_UP)){
@@ -701,7 +704,7 @@ int L_waitForUserInputs(lua_State* passedState){
 							if (userInputResults[i]==NULL){
 								fprintf(fp,"%s\n","(empty)");
 							}else{
-								fprintf(fp,"%s\n",userInputResults[i]);
+								fprintf(fp,"%s\n",(char*)userInputResults[i]);
 							}
 						}
 					}
@@ -734,6 +737,8 @@ int L_waitForUserInputs(lua_State* passedState){
 						// Adds function to stack
 						if (lua_getglobal(passedState,"onOptionsLoad")!=0){
 							lua_call(passedState, 0, 0);
+						}else{
+							lua_pop(passedState,1);
 						}
 						// Call all list init functions
 						for (i=0;i<currentQueue;i++){
@@ -907,26 +912,19 @@ void doScript(char* luaFileToUse){
 	currentScriptName=luaFileToUse;
 	// We do the cleanup for you!
 	STARTTRACKINGGLOBALS();
-
 	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
 	strcpy(luaFilenameComplete,downloadersLocation);
 	strcat(luaFilenameComplete,luaFileToUse);
-	strcat(luaFilenameComplete,".lua");
-
-	char luaDownloadFunctionCallComplete[strlen(luaFileToUse)+strlen("Download();")+1];
-	strcpy(luaDownloadFunctionCallComplete,luaFileToUse);
-	strcat(luaDownloadFunctionCallComplete,"Download();");
-
-	printf("Loading LUA %s\n",luaFilenameComplete);
 	luaL_dofile(L,luaFilenameComplete);
-	printf("Running download function %s\n",luaDownloadFunctionCallComplete);
-	luaL_dostring(L,luaDownloadFunctionCallComplete);
-
+	lua_getglobal(L,"MyLegGuy_Download");
+	lua_call(L,0,0);
 	// Clean the leftovers
 	ENDTRACKINGGLOBALS();
 }
 int main(int argc, char *argv[]){
 	init();
+	// Start
+	doScript("MangaReader.lua");
 	// End
 	quitApplication();
 	return 0;
