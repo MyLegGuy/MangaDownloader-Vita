@@ -437,11 +437,10 @@ char callListFinish(lua_State* passedState, char _listNumber){
 	lua_pop(passedState,1);
 	return 1;
 }
-
 // Removes one from the stack
-int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength){
+int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength, int _tableIndex){
 	// If tables return a number, it means that no table avalible. Free old table
-	if (lua_type(passedState,-1)==LUA_TNUMBER || lua_type(passedState,-1)==LUA_TTABLE){
+	if (lua_type(passedState,_tableIndex)==LUA_TNUMBER || lua_type(passedState,_tableIndex)==LUA_TTABLE){
 		int j;
 		// Free previous list if it exists
 		if ((*_listEntries)!=NULL){
@@ -453,21 +452,23 @@ int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previ
 		}
 	}
 	int _lengthOfTable=_previousLength;
-	if (lua_type(passedState,-1)==LUA_TTABLE){
+	if (lua_type(passedState,_tableIndex)==LUA_TTABLE){
 		int j;
-		_lengthOfTable = lua_rawlen(passedState,-1);
+		_lengthOfTable = lua_rawlen(passedState,_tableIndex);
 		//_listEntriesLength[_currentList] = _lengthOfTable;
 		*_listEntries = calloc(1,sizeof(char*)*(_lengthOfTable));
 		for (j=0;j<_lengthOfTable;j++){
-			lua_rawgeti(passedState,-1,j+1); // Do j+1 because Lua is stupid
+			lua_rawgeti(passedState,_tableIndex,j+1); // Do j+1 because Lua is stupid
 			char* _currentListEntry = (char*)lua_tostring(passedState,-1);
 			(*_listEntries)[j] = calloc(1,strlen(_currentListEntry)+1);
 			strcpy(((*_listEntries)[j]),_currentListEntry);
 			lua_remove(passedState,-1);
 		}
 	}
-	// Remove table or nil from stack
-	lua_remove(passedState,-1);
+	if (_tableIndex==-1){
+		// Remove table or nil from stack
+		lua_remove(passedState,-1);
+	}
 	return _lengthOfTable;
 }
 /*============================================================================*/
@@ -554,9 +555,11 @@ int L_setUserInput(lua_State* passedState){
 // CHANGE DEPENDING ON UI MODE
 //============================
 int L_assignListData(lua_State* passedState){
-	/*
-	assignListData
-	*/
+	char*** _lists = ((char***)lua_touserdata(passedState,1));
+	int* _listLengths = ((int*)lua_touserdata(passedState,2));
+	int _listToChange = lua_tonumber(passedState,3);
+	_listLengths[_listToChange] = assignAfterListInit(passedState,&(_lists[_listToChange]),_listLengths[_listToChange],4);
+	return 0;
 }
 int L_printListStuff(lua_State* passedState){
 	char*** _lists = ((char***)lua_touserdata(passedState,1));
@@ -586,6 +589,7 @@ int L_waitForUserInputs(lua_State* passedState){
 	char** _listEntries[currentQueue];
 	int _listEntriesLength[currentQueue];
 	for (i=0;i<currentQueue;i++){
+		_listEntriesLength[i]=0;
 		_listEntries[i]=NULL;
 	}
 	// Give the list to Lua for use with Lua functions for lists.
@@ -731,7 +735,7 @@ int L_waitForUserInputs(lua_State* passedState){
 						for (i=0;i<currentQueue;i++){
 							if (inputTypeQueue[i]==INPUTTYPELIST){
 								callListInit(passedState,i+1,2);
-								_listEntriesLength[i] = assignAfterListInit(passedState,&(_listEntries[i]),_listEntriesLength[i]);
+								_listEntriesLength[i] = assignAfterListInit(passedState,&(_listEntries[i]),_listEntriesLength[i],-1);
 							}
 						}
 					}else{
@@ -749,7 +753,7 @@ int L_waitForUserInputs(lua_State* passedState){
 				if (inputTypeQueue[_selection]==INPUTTYPELIST){
 					int _currentList=_selection;
 					callListInit(passedState,_currentList+1,_listEntries[_currentList]==NULL);
-					_listEntriesLength[_currentList] = assignAfterListInit(passedState,&(_listEntries[_currentList]),_listEntriesLength[_currentList]);
+					_listEntriesLength[_currentList] = assignAfterListInit(passedState,&(_listEntries[_currentList]),_listEntriesLength[_currentList],-1);
 					if (_listEntries[_currentList]!=NULL){
 						int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1); // Subtract 1 from starting index because result was one based.
 						if (_tempUserAnswer!=-1){
@@ -899,8 +903,6 @@ void doScript(char* luaFileToUse){
 	currentScriptName=luaFileToUse;
 	// We do the cleanup for you!
 	STARTTRACKINGGLOBALS();
-
-	
 
 	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
 	strcpy(luaFilenameComplete,downloadersLocation);
