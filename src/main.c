@@ -1,6 +1,7 @@
 /*
-TODO - Remember to free the user search input and input for queue
-TODO - Settings saving
+TODO LIST
+---------
+
 */
 #define VERSION 1
 
@@ -197,6 +198,9 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 		EndDrawing();
 
 		FpsCapWait();
+	}
+	if (_lastUserSearchTerm!=NULL){
+		free(_lastUserSearchTerm);
 	}
 }
 // _userInputNumber should be ONE BASED
@@ -923,9 +927,6 @@ void doScript(char* luaFileToUse){
 }
 int main(int argc, char *argv[]){
 	init();
-
-	doScript("DynastyScans");	
-
 	// End
 	quitApplication();
 	return 0;
