@@ -1,11 +1,6 @@
 /*
 TODO - Queue multiple chapters?
 	New input type INPUTTYPENUMBERQUEUE?
-TODO - Certian series' chapter lists cause Vita version to crash.
-	Is it....
-		Buffer overflow?
-		Trying to draw special characters?
-		Trouble copying special characters to the strings?
 */
 #define VERSION 1
 
@@ -56,6 +51,9 @@ TODO - Certian series' chapter lists cause Vita version to crash.
 #include <Lua/lua.h>
 #include <Lua/lualib.h>
 #include <Lua/lauxlib.h>
+
+// main.h
+	void WriteToDebugFile(const char* stuff);
 
 #include "GeneralGoodConfig.h"
 #include "GeneralGoodExtended.h"
@@ -148,7 +146,6 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 	char _scrollStatus=SCROLLSTATUS_NEEDCHECK;
 	while (1){
 		FpsCapStart();
-		
 		ControlsStart();
 		if (WasJustPressed(SCE_CTRL_DOWN)){
 			_selection = moveCursor(_selection,_listSize,1,1);
@@ -167,15 +164,9 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_CROSS)){
-			if (_lastUserSearchTerm!=NULL){
-				free(_lastUserSearchTerm);
-			}
 			_valueToReturn = _selection+1;
 			break;
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
-			if (_lastUserSearchTerm!=NULL){
-				free(_lastUserSearchTerm);
-			}
 			_valueToReturn = -1;
 			break;
 		}else if (WasJustPressed(SCE_CTRL_SQUARE)){
@@ -183,6 +174,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 			char* _tempUserAnswer = userKeyboardInput(_lastUserSearchTerm!=NULL ? _lastUserSearchTerm : "","Search",99);
 			if (_lastUserSearchTerm!=NULL){
 				free(_lastUserSearchTerm);
+				_lastUserSearchTerm=NULL;
 			}
 			_lastUserSearchTerm = _tempUserAnswer;
 			//_lastUserSearchTerm = 
@@ -337,6 +329,8 @@ void WriteToDebugFile(const char* stuff){
 		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
 		fprintf(fp,"%s\n",stuff);
 		fclose(fp);
+	#else
+		printf("Write: %s\n",stuff);
 	#endif
 }
 // Does not clear the debug file at ux0:data/LUAMANGAS/a.txt  , I promise.
@@ -353,6 +347,8 @@ void WriteIntToDebugFile(int a){
 		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
 		fprintf(fp,"%d\n", a);
 		fclose(fp);
+	#else
+		printf("Write: %d\n",a);
 	#endif
 }
 // strcpy, but it won't copy from src to dest if the value is 1.
@@ -495,8 +491,9 @@ char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
 char callListInit(lua_State* passedState, char _listNumber, char _firstTime){
 	char _listFunctionName[12];
 	sprintf(_listFunctionName,"InitList%02d",_listNumber);
-	if (lua_getglobal(passedState,_listFunctionName)==0){
-		printf("Failed to get global function %s\n",_listFunctionName);
+	if (lua_getglobal(passedState,_listFunctionName)!=LUA_TFUNCTION){
+		WriteToDebugFile("Failed to get global function");
+		WriteToDebugFile(_listFunctionName);
 		return 0;
 	}
 	lua_pushnumber(passedState,_firstTime);
@@ -970,6 +967,10 @@ int L_showStatus(lua_State* passedState){
 	popupMessage(lua_tostring(passedState,-1),0);
 	return 0;
 }
+int L_WriteToDebugFile(lua_State* passedState){
+	WriteToDebugFile(lua_tostring(passedState,1));
+	return 0;
+}
 void MakeLuaUseful(){
 	LUAREGISTER(L_downloadString,"downloadString");
 	LUAREGISTER(L_downloadFile,"downloadFile");
@@ -988,6 +989,7 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_setUserInput,"setUserInput");
 	LUAREGISTER(L_printListStuff,"printListStuff");
 	LUAREGISTER(L_assignListData,"assignListData");
+	LUAREGISTER(L_WriteToDebugFile,"WriteToDebugFile");
 }
 /*============================================================================*/
 void init(){

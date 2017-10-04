@@ -11,7 +11,7 @@ LIBS = -lvita2d -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
-CFLAGS  = -Wl,-q -Wall -O3
+CFLAGS  = -Wl,-q -Wall -O3 -g
 CXXFLAGS = $(CFLAGS)
 ASFLAGS = $(CFLAGS)
 

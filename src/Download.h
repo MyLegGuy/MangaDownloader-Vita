@@ -24,11 +24,11 @@
 		size_t curlWriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp){
 			size_t realsize = size * nmemb;
 			MemoryStruct* mem = (MemoryStruct*) userp;
-		
 			mem->memory = realloc(mem->memory, mem->size + realsize + 1);
 			if(mem->memory == NULL) {
+				free(mem->memory);
 				/* out of memory! */
-				printf("not enough memory (realloc returned NULL)\n");
+				WriteToDebugFile("not enough memory (realloc returned NULL)\n");
 				return 0;
 			}
 		
@@ -63,7 +63,7 @@
 			curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunkToDownloadTo);
 			res = curl_easy_perform(curl_handle);
 			if(res != CURLE_OK) {
-				printf("Failed, the world is over.\n");
+				WriteToDebugFile("Failed, the world is over.\n");
 			}
 			*_toStoreWebpageData = chunkToDownloadTo.memory;
 			if (_toStoreSize!=NULL){
