@@ -18,7 +18,7 @@ ASFLAGS = $(CFLAGS)
 all: $(TARGET).vpk
 
 %.vpk: eboot.bin
-	vita-mksfoex -s TITLE_ID=$(TITLE_ID) "$(TARGET)" param.sfo
+	vita-mksfoex -s TITLE_ID=$(TITLE_ID) "Manga Downloader" param.sfo
 	vita-pack-vpk -s param.sfo -b eboot.bin \
 	--add VpkContents/sce_sys/icon0.png=sce_sys/icon0.png \
 	--add VpkContents/sce_sys/livearea/contents/bg.png=sce_sys/livearea/contents/bg.png \

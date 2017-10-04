@@ -1,6 +1,5 @@
 SCRIPTVERSION=1
 SAVEVARIABLE=0
-
 -- DoTheStuff was programmed in 12/7/16 in a C# program
 -- Other code was written starting on 9/5/17
 urlPrefix = "https://dynasty-scans.com";
@@ -110,7 +109,6 @@ function DoTheStuff(completeMangaNameUrlSuffix,completeDownloadFolderName)
 
 	local fileFormat = urls[1]:sub(string.len(urls[1]) - 3, (string.len(urls[1]) - 4)+4);
 	for i=1,numPages do
-
 		showStatus("Downloading " .. (i) .. "/" .. numPages);
 		downloadFile(realFileUrlPrefix .. urls[i], completeDownloadFolderName .. "/" .. string.format("%03d",i) .. fileFormat);
 	end
@@ -193,7 +191,6 @@ function boolToNumber(_bol)
 end
 function MyLegGuy_Download()
 	ResetUserChoices();
-
 	-- Let user choose between doujin or manga
 	InitList01 = input1_InitList01;
 	userInputQueue("Mode","Choose \"Manga\" or \"Doujin.\"",INPUTTYPELIST);

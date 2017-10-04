@@ -1,6 +1,4 @@
 -- Written on 9/2/17
-print("Script loaded")
-
 SCRIPTVERSION=1;
 
 --https://doujins.com/zr63zbpp
@@ -22,6 +20,7 @@ function MyLegGuy_Download()
 
 	createDirectory(getMangaFolder() .. "DoujinMoe")
 	
+	showStatus("Getting pages HTML...");
 	local completedUrl = "https://doujins.com/" .. _urlEndName;
 	print("Downloading from " .. completedUrl)
 	local webpageDownloaded = downloadString(completedUrl);
@@ -32,11 +31,13 @@ function MyLegGuy_Download()
 	-- something for contorl bar or something
 	-- Link that shows the doujin's name that leads to zr63zbpp
 
+	showStatus("Parsing pages HTML...");
 	local _nameTagStart=1;
 	for i=1,3 do
 		_nameTagStart = string.find(webpageDownloaded,_urlEndName,_nameTagStart+1,true);
 	end
 	local _doujinName = string.sub(webpageDownloaded,_nameTagStart+string.len(_urlEndName)+2,string.find(webpageDownloaded,"<",_nameTagStart,true)-1);
+	showStatus("Fixing folder name...");
 	-- Remove characters you can't have in folder names
 	_doujinName = string.gsub(_doujinName,"~"," ");
 	_doujinName = string.gsub(_doujinName,"#"," ");
@@ -57,11 +58,16 @@ function MyLegGuy_Download()
 	
 	createDirectory(getMangaFolder() .. "DoujinMoe/" .. _doujinName)
 	local _currentSearchingIndex = _firstGalleryLocation;
+	showStatus("Starting first page...");
 	for i=1,999 do
 		if (_currentSearchingIndex==nil) then
 			break;
 		end
 		local _openDjmTag = string.find(webpageDownloaded,"djm",_currentSearchingIndex+1,true);
+		if (_openDjmTag==nil) then
+			break;
+		end
+		showStatus("Downloading page " .. i);
 		local _endFirstDjmString = string.find(webpageDownloaded,"\"",_openDjmTag+10,true);
 		local _foundUrl = string.sub(webpageDownloaded,_openDjmTag+10,_endFirstDjmString-1);
 		print("Page " .. i);

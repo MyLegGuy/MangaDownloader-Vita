@@ -31,10 +31,20 @@ function InitList02(isFirstTime)
 	end
 end
 
+function InitList03(isFirstTime)
+	_returnList = {};
+	table.insert(_returnList,"shortname")
+	table.insert(_returnList,"abcdefghijklmnopqrstuvwxyzabcdefghijklmnopqrstuvwxyz")
+	table.insert(_returnList,"abcdefghijklmnopqrstuvwxyz")
+	table.insert(_returnList,"hi")
+	return _returnList;
+end
+
 function MyLegGuy_Download()
 	print(SCRIPTVERSION .. " is script version")
 	userInputQueue("Mode","Choose \"Manga\" or \"Doujin.\"",INPUTTYPELIST)
 	userInputQueue("Mode2","mode2 text here",INPUTTYPELIST)
+	userInputQueue("Mode3","big list test",INPUTTYPELIST)
 	userInputQueue("Number","(int) Self explanatory",INPUTTYPENUMBER)
 	userInputQueue("name","put your name here",INPUTTYPESTRING)
 	waitForUserInputs();

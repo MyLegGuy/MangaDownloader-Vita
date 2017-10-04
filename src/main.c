@@ -21,6 +21,7 @@ TODO - Downloading as you read would be really cool.
 #define INPUTTYPENUMBER 2
 #define INPUTTYPELIST 3
 #define MAXQUEUE 5
+#define SCROLLCHARSPEED 10
 // Customizable colors confirmed?!
 #define COLOROPTION 255,255,255
 #define COLORSELECTED 0,255,0
@@ -30,6 +31,8 @@ TODO - Downloading as you read would be really cool.
 #define COLORMAYBE 255,255,0
 // For lists and number input, how much you move when pressing left or right
 #define LISTLEFTRIGHTJUMPOFFSET 10
+// Max number of downloader scripts
+#define MAXFILES 20
 
 #define DOWNLOAD_NONE 0
 #define DOWNLOAD_CURL 1
@@ -53,7 +56,7 @@ TODO - Downloading as you read would be really cool.
 #include "Download.h"
 #include "FpsCapper.h"
 #include "KeyboardCode.h"
-#include "OpenBSDStrStr.h"
+#include "OpenBSDstrcharstr.h"
 
 /*============================================================================*/
 lua_State* L;
@@ -114,6 +117,14 @@ int moveCursor(int _selection, int _listSize, char _canWrap, int _amount){
 void gooditoa(int _num, char* _buffer, int _uselessBase){
 	sprintf(_buffer, "%d", _num);
 }
+
+#define SCROLLSTATUS_NOSCROLL 0
+#define SCROLLSTATUS_SCROLLING 1
+#define SCROLLSTATUS_WAITING 2
+#define SCROLLSTATUS_NEEDCHECK 3
+#define SCROLLSTATUS_ENDWAITPLUSONE 4
+#define SCROLLSTATUS_ENDWAIT 5
+
 // Returns -1 if user cancels
 // Returns 1 based selection
 int showList(char** _currentList, int _listSize, int _startingSelection){
@@ -130,6 +141,10 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 	_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 	char* _lastUserSearchTerm=NULL;
 	int _lastSearchResult=0;
+	signed int _valueToReturn=-1;
+	int _framesUntilScroll=60;
+	int _scrollCharOffset=0;
+	char _scrollStatus=SCROLLSTATUS_NEEDCHECK;
 	while (1){
 		FpsCapStart();
 		
@@ -137,27 +152,32 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 		if (WasJustPressed(SCE_CTRL_DOWN)){
 			_selection = moveCursor(_selection,_listSize,1,1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_UP)){
 			_selection = moveCursor(_selection,_listSize,1,-1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_RIGHT)){
 			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_LEFT)){
 			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET*-1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_CROSS)){
 			if (_lastUserSearchTerm!=NULL){
 				free(_lastUserSearchTerm);
 			}
-			return _selection+1;
+			_valueToReturn = _selection+1;
+			break;
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
 			if (_lastUserSearchTerm!=NULL){
 				free(_lastUserSearchTerm);
 			}
-			return -1;
+			_valueToReturn = -1;
+			break;
 		}else if (WasJustPressed(SCE_CTRL_SQUARE)){
-			
 			// SEARCH LIST FUNCTION
 			char* _tempUserAnswer = userKeyboardInput(_lastUserSearchTerm!=NULL ? _lastUserSearchTerm : "","Search",99);
 			if (_lastUserSearchTerm!=NULL){
@@ -173,6 +193,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 					break;
 				}
 			}
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
 			for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
 				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
@@ -188,22 +209,71 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 					}
 				}
 			}
+			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}
 		ControlsEnd();
 
 		StartDrawing();
 		for (i=0;i<_optionsPerScreen;i++){
-			GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+			if (i+_selectionListOffset!=_selection){
+				GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+			}
+		}
+		if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
+			GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+		}else{
+			GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
 		}
 		GoodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
-		GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,_currentList[_selection],fontSize,COLORSELECTED);
 		EndDrawing();
 
+		// Timer until long words start to scroll.
+		if (_scrollStatus!=SCROLLSTATUS_NOSCROLL){
+			if (_scrollStatus==SCROLLSTATUS_NEEDCHECK){
+				if (TextWidth(fontSize,_currentList[_selection])+cursorWidth+5>screenWidth){
+					_scrollStatus = SCROLLSTATUS_WAITING;	
+				}
+				_framesUntilScroll=60;
+				_scrollCharOffset=0;
+			}else if (_scrollStatus==SCROLLSTATUS_WAITING){
+				_framesUntilScroll--;
+				if (_framesUntilScroll==0){
+					_scrollStatus = SCROLLSTATUS_SCROLLING;
+					_framesUntilScroll=SCROLLCHARSPEED;
+				}
+			}else if (_scrollStatus==SCROLLSTATUS_SCROLLING){
+				_framesUntilScroll--;
+				if (_framesUntilScroll==0){
+					_framesUntilScroll = SCROLLCHARSPEED;
+					_scrollCharOffset++;
+					if (TextWidth(fontSize,&(_currentList[_selection][_scrollCharOffset]))+cursorWidth+5<screenWidth){
+						_scrollStatus = SCROLLSTATUS_ENDWAITPLUSONE;
+						_framesUntilScroll=SCROLLCHARSPEED;
+					}
+				}
+			}else if (_scrollStatus==SCROLLSTATUS_ENDWAIT){
+				_framesUntilScroll--;
+				if (_framesUntilScroll<=0){
+					_scrollStatus=SCROLLSTATUS_WAITING;
+					_framesUntilScroll=60;
+					_scrollCharOffset=0;
+				}
+			}else if (_scrollStatus==SCROLLSTATUS_ENDWAITPLUSONE){
+				_framesUntilScroll--;
+				if (_framesUntilScroll==0){
+					_scrollCharOffset++;
+					_scrollStatus = SCROLLSTATUS_ENDWAIT;
+					_framesUntilScroll=60;
+				}
+			}
+		}
 		FpsCapWait();
 	}
 	if (_lastUserSearchTerm!=NULL){
 		free(_lastUserSearchTerm);
 	}
+	ControlsEnd();
+	return _valueToReturn;
 }
 // _userInputNumber should be ONE BASED
 void pushUserInput(lua_State* passedState, void* _userInputResults, int _tempType, int _userInputNumber){
@@ -380,7 +450,6 @@ void popupMessage(const char* _tempMsg, char _waitForAButton){
 		ControlsEnd();
 		StartDrawing();
 		// We need this variable so we know the offset in the message for the text that is for the next line
-		
 		_lastStrlen=0;
 		for (i=0;i<currentlyVisibleLines;i++){
 			GoodDrawTextColored(5,TEXTBOXY+TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
@@ -415,8 +484,8 @@ void resetScriptData(){
 	numberOfPrompts=0;
 }
 char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
-	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
-	sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot);
+	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+3+1+1); // TODO - Why does adding a byte here fix everything?
+	//printf("%d/%d\n",sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot),strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
 	return _compiledOptionsPath;
 }
 // _listNumber should be 1 based
@@ -476,6 +545,59 @@ int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previ
 		lua_remove(passedState,-1);
 	}
 	return _lengthOfTable;
+}
+void doScript(char* luaFileToUse){
+	resetScriptData();
+	currentScriptName=luaFileToUse;
+	// We do the cleanup for you!
+	STARTTRACKINGGLOBALS();
+	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
+	strcpy(luaFilenameComplete,downloadersLocation);
+	strcat(luaFilenameComplete,luaFileToUse);
+	if (luaL_dofile(L,luaFilenameComplete)!=0){
+		popupMessage("Failed to run Lua file.",0);
+	}
+	if (lua_getglobal(L,"MyLegGuy_Download")==0){
+		popupMessage("Could not find MyLegGuy_Download function.",1);
+		lua_pop(L,1);
+		return;
+	}else{
+		lua_call(L,0,0);
+	}
+	// Clean the leftovers
+	ENDTRACKINGGLOBALS();
+}
+// Prompt the user to choose a script file from the proper script directory. Returned string is malloc'd
+char* chooseScript(){
+	// Select download script
+	CROSSDIR dir;
+	CROSSDIRSTORAGE lastStorage;
+	dir = openDirectory (downloadersLocation);
+	if (dirOpenWorked(dir)==0){
+		popupMessage("Script directory missing! It should've been included in the VPK. So....MyLegGuy probably forgot to include it with the VPK. You should go give him a heads up. Pressing X will show you the path of the folder that is supposed to exist.",1);
+		popupMessage(downloadersLocation,1);
+		return NULL;
+	}
+	char* _filenames[MAXFILES]={NULL};
+	int i;
+	for (i=0;i<MAXFILES;i++){
+		if (directoryRead(&dir,&lastStorage) == 0){
+			break;
+		}
+		_filenames[i] = malloc(strlen(getDirectoryResultName(&lastStorage))+1);
+		strcpy(_filenames[i],getDirectoryResultName(&lastStorage));
+	}
+	directoryClose (dir);
+	int _userChosenFileIndex = showList(_filenames,i,0);
+	if (_userChosenFileIndex==-1){
+		return NULL;
+	}
+	//for (i=0;_filenames[i]!=NULL;i++){
+	//	if (i+1!=_userChosenFileIndex){
+	//		free(_filenames[i]);
+	//	}
+	//}
+	return _filenames[_userChosenFileIndex-1];
 }
 /*============================================================================*/
 // url, filepath
@@ -558,9 +680,6 @@ int L_setUserInput(lua_State* passedState){
 	pushUserInput(passedState,userInputResults[_slot],inputTypeQueue[_slot],_slot+1);
 	return 0;
 }
-//============================
-// CHANGE DEPENDING ON UI MODE
-//============================
 int L_assignListData(lua_State* passedState){
 	char*** _lists = ((char***)lua_touserdata(passedState,1));
 	int* _listLengths = ((int*)lua_touserdata(passedState,2));
@@ -908,24 +1027,15 @@ void init(){
 	FixPath("assets/GlobalTracking.lua",tempPathFixBuffer,TYPE_EMBEDDED);
 	luaL_dofile(L,tempPathFixBuffer);
 }
-void doScript(char* luaFileToUse){
-	resetScriptData();
-	currentScriptName=luaFileToUse;
-	// We do the cleanup for you!
-	STARTTRACKINGGLOBALS();
-	char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
-	strcpy(luaFilenameComplete,downloadersLocation);
-	strcat(luaFilenameComplete,luaFileToUse);
-	luaL_dofile(L,luaFilenameComplete);
-	lua_getglobal(L,"MyLegGuy_Download");
-	lua_call(L,0,0);
-	// Clean the leftovers
-	ENDTRACKINGGLOBALS();
-}
 int main(int argc, char *argv[]){
 	init();
+	char* _userChosenScriptFile = chooseScript();
+	if (_userChosenScriptFile==NULL){
+		return 0;
+	}
 	// Start
-	doScript("MangaReader.lua");
+	doScript(_userChosenScriptFile);
+	//free(_userChosenScriptFile);
 	// End
 	quitApplication();
 	return 0;

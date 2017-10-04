@@ -55,5 +55,6 @@ trash/
 *.velf
 *.bin
 *.o
+*.sfo
 
 UpdateVPKContents.bat

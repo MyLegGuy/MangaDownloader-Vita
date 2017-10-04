@@ -207,12 +207,14 @@ function MyLegGuy_Download()
 	--if (waitForUserInputs(1)==false) then
 	--	return;
 	--end
-	--_mangaNameToDownload = userInput01;
-	--_chapterNumberToDownload = userInput02;
-	--_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
-	--initializeDownloadMenu()
-	--currentDownloadName = _mangaNameToDownload
-	--currentDownloadChapterNumber = _chapterNumberToDownload
-	--currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
-	--downloadDoTheThing()
+	_mangaNameToDownload = seriesListUrl[userInput01];
+	-- Remove starting slash
+	_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
+	_chapterNumberToDownload = userInput02;
+	_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
+	initializeDownloadMenu()
+	currentDownloadName = _mangaNameToDownload
+	currentDownloadChapterNumber = _chapterNumberToDownload
+	currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
+	downloadDoTheThing()
 end
