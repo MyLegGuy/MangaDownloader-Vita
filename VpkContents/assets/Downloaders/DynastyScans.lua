@@ -109,6 +109,7 @@ function DoTheStuff(completeMangaNameUrlSuffix,completeDownloadFolderName)
 
 	local fileFormat = urls[1]:sub(string.len(urls[1]) - 3, (string.len(urls[1]) - 4)+4);
 	for i=1,numPages do
+		fileFormat = urls[i]:sub(string.len(urls[i]) - 3, (string.len(urls[i]) - 4)+4)
 		showStatus("Downloading " .. (i) .. "/" .. numPages);
 		downloadFile(realFileUrlPrefix .. urls[i], completeDownloadFolderName .. "/" .. string.format("%03d",i) .. fileFormat);
 	end

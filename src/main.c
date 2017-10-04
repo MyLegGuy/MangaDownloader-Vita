@@ -1,9 +1,11 @@
 /*
 TODO - Queue multiple chapters?
 	New input type INPUTTYPENUMBERQUEUE?
-TODO - Slowly scroll results that won't fit on the screen
-	List results, I mean.
-TODO - Downloading as you read would be really cool.
+TODO - Certian series' chapter lists cause Vita version to crash.
+	Is it....
+		Buffer overflow?
+		Trying to draw special characters?
+		Trouble copying special characters to the strings?
 */
 #define VERSION 1
 
@@ -485,7 +487,8 @@ void resetScriptData(){
 }
 char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
 	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+3+1+1); // TODO - Why does adding a byte here fix everything?
-	//printf("%d/%d\n",sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot),strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
+	sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot);
+	//printf("%d/%d\n",(put sprintf command here.),strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
 	return _compiledOptionsPath;
 }
 // _listNumber should be 1 based
@@ -592,11 +595,11 @@ char* chooseScript(){
 	if (_userChosenFileIndex==-1){
 		return NULL;
 	}
-	//for (i=0;_filenames[i]!=NULL;i++){
-	//	if (i+1!=_userChosenFileIndex){
-	//		free(_filenames[i]);
-	//	}
-	//}
+	for (i=0;_filenames[i]!=NULL;i++){
+		if (i+1!=_userChosenFileIndex){
+			free(_filenames[i]);
+		}
+	}
 	return _filenames[_userChosenFileIndex-1];
 }
 /*============================================================================*/
@@ -1035,7 +1038,7 @@ int main(int argc, char *argv[]){
 	}
 	// Start
 	doScript(_userChosenScriptFile);
-	//free(_userChosenScriptFile);
+	free(_userChosenScriptFile);
 	// End
 	quitApplication();
 	return 0;
