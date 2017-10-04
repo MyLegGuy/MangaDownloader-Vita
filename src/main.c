@@ -41,6 +41,13 @@ TODO - Certian series' chapter lists cause Vita version to crash.
 #define DOWNLOAD_VITA 2
 #define DOWNLOADTYPE DOWNLOAD_CURL
 
+#define SCROLLSTATUS_NOSCROLL 0
+#define SCROLLSTATUS_SCROLLING 1
+#define SCROLLSTATUS_WAITING 2
+#define SCROLLSTATUS_NEEDCHECK 3
+#define SCROLLSTATUS_ENDWAITPLUSONE 4
+#define SCROLLSTATUS_ENDWAIT 5
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -119,14 +126,6 @@ int moveCursor(int _selection, int _listSize, char _canWrap, int _amount){
 void gooditoa(int _num, char* _buffer, int _uselessBase){
 	sprintf(_buffer, "%d", _num);
 }
-
-#define SCROLLSTATUS_NOSCROLL 0
-#define SCROLLSTATUS_SCROLLING 1
-#define SCROLLSTATUS_WAITING 2
-#define SCROLLSTATUS_NEEDCHECK 3
-#define SCROLLSTATUS_ENDWAITPLUSONE 4
-#define SCROLLSTATUS_ENDWAIT 5
-
 // Returns -1 if user cancels
 // Returns 1 based selection
 int showList(char** _currentList, int _listSize, int _startingSelection){
@@ -486,9 +485,8 @@ void resetScriptData(){
 	numberOfPrompts=0;
 }
 char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
-	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+3+1+1); // TODO - Why does adding a byte here fix everything?
+	char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+1+3+1+1); // Here lies 2 hours of my time. I forgot about the dash, didn't add a byte for that. RIP.
 	sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot);
-	//printf("%d/%d\n",(put sprintf command here.),strlen(optionsLocation)+strlen(currentScriptName)+2+3+1);
 	return _compiledOptionsPath;
 }
 // _listNumber should be 1 based
