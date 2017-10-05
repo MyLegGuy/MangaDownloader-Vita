@@ -96,6 +96,8 @@ char* currentScriptName;
 //===============
 char downloadCoverIfPossible=1;
 /*============================================================================*/
+void nothingFunction(){
+}
 void quitApplication(){
 	curl_easy_cleanup(curl_handle);
 }
@@ -245,7 +247,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection, NathanL
 				for (i=0;i<_listSize;i++){
 					if (_selectedList[i]==1){
 						NathanLinkedList* _lastAddedEntry = addToLinkedList(_multiList);
-						_lastAddedEntry->memory = calloc(1,sizeof(int));
+						_lastAddedEntry->memory = calloc(1,sizeof(int*));
 						*(_lastAddedEntry->memory)=i+1;
 					}
 				}
@@ -343,18 +345,25 @@ int showList(char** _currentList, int _listSize, int _startingSelection, NathanL
 	return _valueToReturn;
 }
 // _userInputNumber should be ONE BASED
-void pushUserInput(lua_State* passedState, void* _userInputResults, int _tempType, int _userInputNumber){
-	// Set a global variable to the user's choice
-	// Construct variable name
-	char _userInputResultName[256];
+char* getUserInputResultName(int _userInputNumber){
+	char* _userInputResultName = malloc(strlen("userInput")+2+1);
 	sprintf(_userInputResultName,"userInput%02d",_userInputNumber);
+	return _userInputResultName;
+}
+// _userInputNumber should be ONE BASED
+// If you're pushing INPUTTYPELISTMULTI, make sure the table is at the top of the stack already.
+void pushUserInput(lua_State* passedState, void* _userInputResults, int _tempType, int _userInputNumber){
+	char* _userInputResultName = getUserInputResultName(_userInputNumber);
 	// Push different type depending on input type
 	if (_tempType==INPUTTYPESTRING){
 		lua_pushstring(passedState,(char*)_userInputResults);
 	}else if (_tempType==INPUTTYPENUMBER || _tempType==INPUTTYPELIST){
 		lua_pushnumber(passedState,*((int*)_userInputResults));
+	}else if (_tempType==INPUTTYPELISTMULTI){
+		// Do nothing, list is already ready.
 	}
 	lua_setglobal(passedState, _userInputResultName);
+	free(_userInputResultName);
 }
 int inputNumber(int _startingNumber){
 	ControlsEnd();
@@ -752,6 +761,13 @@ int L_fileExists(lua_State* passedState){
 // Slot, value
 int L_setUserInput(lua_State* passedState){
 	int _slot = lua_tonumber(passedState,1)-1;
+	if (inputTypeQueue[_slot]==INPUTTYPELISTMULTI){
+		freeLinkedList(userInputResults[_slot]);
+		userInputResults[_slot] = calloc(1,sizeof(NathanLinkedList));
+		lua_createtable(passedState, 0, 0);
+		pushUserInput(passedState,NULL,INPUTTYPELISTMULTI,_slot+1);
+		return 0;
+	}
 	if (lua_type(passedState,2)==LUA_TNUMBER){
 		*((int*)userInputResults[_slot])=lua_tonumber(passedState,2);
 	}else if (lua_type(passedState,2)==LUA_TSTRING){
@@ -913,9 +929,12 @@ int L_waitForUserInputs(lua_State* passedState){
 							}else{
 								fprintf(fp,"%s\n",(char*)userInputResults[i]);
 							}
+						}else{ // INPUTTYPELISTMULTI
+							fprintf(fp,"%s\n","(non-saveable type)");
 						}
 					}
 					fclose(fp); // Save button
+					popupMessage("Saved.",0,0);
 				}else if (_selection==currentQueue+1){
 					if (_currentSlotExists==1){
 						FILE* fp = fopen(_compiledOptionsPath,"r");
@@ -954,6 +973,7 @@ int L_waitForUserInputs(lua_State* passedState){
 								_listEntriesLength[i] = assignAfterListInit(passedState,&(_listEntries[i]),_listEntriesLength[i],-1);
 							}
 						}
+						popupMessage("Loaded.",0,0);
 					}else{
 						popupMessage("Slot file does not exist.",1,0);
 					} // Load button
@@ -977,33 +997,28 @@ int L_waitForUserInputs(lua_State* passedState){
 							int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1,NULL); // Subtract 1 from starting index because result was one based.
 							if (_tempUserAnswer!=-1){
 								*((int*)(userInputResults[_currentList]))=_tempUserAnswer;
+								//int* _noob = malloc(4);
+								//*_noob = 1;
 								pushUserInput(passedState,userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
 							}
 						}else if (inputTypeQueue[_currentList]==INPUTTYPELISTMULTI){
-							NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],/*TODO - Start index*/0,(NathanLinkedList*)userInputResults[_currentList]);
+							NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))!=NULL ? *((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))-1 : 0,(NathanLinkedList*)userInputResults[_currentList]);
 							if ((signed int)_tempUserAnswer!=-1){
 								userInputResults[_currentList] = _tempUserAnswer;
-									// TODO - Push multi-list results, don't forget to check for null memory pointer for list of 0 length.
-								printf("Push results here.\n");
-								look, nathan! Its sample code for pushing tables!
-								// THE SECOND ELEMENT IS THE NUMBER OF ELEMENTS FOR THIS TABLE!
-									// TODO - SET THE CORRECT NUMBER OF ELEMENTS
-								lua_createtable(L, 3, 0);
-								// (This code is tested. This will work.)
-								// Please start at 1!
-								lua_pushnumber(L, 1);
-								lua_pushstring(L, "first elemenbt string");
-								lua_settable(L, -3); // stack(-3)[stack(-2)] = stack(-1); // someTable[1]="first elemenbt string"
-								
-								lua_pushnumber(L, 2);
-								lua_pushstring(L, "second element string");
-								lua_settable(L, -3);
-								
-								lua_pushnumber(L, 3);
-								lua_pushstring(L, "third element string");
-								lua_settable(L, -3);
-								
-								lua_setglobal(L,"testtable");
+								if (((NathanLinkedList*)userInputResults[_currentList])->memory!=NULL){
+									int _cachedListLength=getLinkedListLength((NathanLinkedList*)userInputResults[_currentList]);
+									lua_createtable(passedState, _cachedListLength, 0);
+									for (i=0;i<_cachedListLength;i++){
+										NathanLinkedList* _lastGottenList = getLinkedList((NathanLinkedList*)userInputResults[_currentList],i+1);
+										lua_pushnumber(L,i+1);
+										lua_pushnumber(L, *((int*)_lastGottenList->memory));
+										lua_settable(L, -3); // stack(-3)[stack(-2)] = stack(-1); // someTable[1]="first elemenbt string"
+									}
+								}else{
+									// We'll push an empty table.
+									lua_createtable(passedState, 0, 0);
+								}
+								pushUserInput(passedState,NULL,INPUTTYPELISTMULTI,_currentList+1);
 							}
 						}
 						callListFinish(passedState,_currentList+1);
