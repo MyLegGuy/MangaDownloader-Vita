@@ -983,8 +983,27 @@ int L_waitForUserInputs(lua_State* passedState){
 							NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],/*TODO - Start index*/0,(NathanLinkedList*)userInputResults[_currentList]);
 							if ((signed int)_tempUserAnswer!=-1){
 								userInputResults[_currentList] = _tempUserAnswer;
-								// TODO - Push multi-list results, don't forget to check for null memory pointer for list of 0 length.
+									// TODO - Push multi-list results, don't forget to check for null memory pointer for list of 0 length.
 								printf("Push results here.\n");
+								look, nathan! Its sample code for pushing tables!
+								// THE SECOND ELEMENT IS THE NUMBER OF ELEMENTS FOR THIS TABLE!
+									// TODO - SET THE CORRECT NUMBER OF ELEMENTS
+								lua_createtable(L, 3, 0);
+								// (This code is tested. This will work.)
+								// Please start at 1!
+								lua_pushnumber(L, 1);
+								lua_pushstring(L, "first elemenbt string");
+								lua_settable(L, -3); // stack(-3)[stack(-2)] = stack(-1); // someTable[1]="first elemenbt string"
+								
+								lua_pushnumber(L, 2);
+								lua_pushstring(L, "second element string");
+								lua_settable(L, -3);
+								
+								lua_pushnumber(L, 3);
+								lua_pushstring(L, "third element string");
+								lua_settable(L, -3);
+								
+								lua_setglobal(L,"testtable");
 							}
 						}
 						callListFinish(passedState,_currentList+1);
