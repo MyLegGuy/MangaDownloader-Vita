@@ -17,10 +17,13 @@ TODO - Queue multiple chapters?
 #define INPUTTYPESTRING 1
 #define INPUTTYPENUMBER 2
 #define INPUTTYPELIST 3
+#define INPUTTYPELISTMULTI 4
 #define MAXQUEUE 5
 #define SCROLLCHARSPEED 10
 // Customizable colors confirmed?!
 #define COLOROPTION 255,255,255
+#define COLORMARKED 255,100,0
+#define COLORMARKEDHOVER 255,190,0
 #define COLORSELECTED 0,255,0
 #define COLORSTATUS COLOROPTION
 #define COLORINVALID 255,0,0
@@ -54,6 +57,7 @@ TODO - Queue multiple chapters?
 
 // main.h
 	void WriteToDebugFile(const char* stuff);
+	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
 
 #include "GeneralGoodConfig.h"
 #include "GeneralGoodExtended.h"
@@ -64,6 +68,7 @@ TODO - Queue multiple chapters?
 #include "FpsCapper.h"
 #include "KeyboardCode.h"
 #include "OpenBSDstrcharstr.h"
+#include "LinkedList.h"
 
 /*============================================================================*/
 lua_State* L;
@@ -126,7 +131,7 @@ void gooditoa(int _num, char* _buffer, int _uselessBase){
 }
 // Returns -1 if user cancels
 // Returns 1 based selection
-int showList(char** _currentList, int _listSize, int _startingSelection){
+int showList(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList){
 	ControlsEnd();
 	int i;
 	char _optionsPerScreen;
@@ -140,6 +145,21 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 	_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 	char* _lastUserSearchTerm=NULL;
 	int _lastSearchResult=0;
+	char _selectedList[_multiList!=NULL ? _listSize : 1];
+	if (_multiList!=NULL){
+		for (i=0;i<_listSize;i++){
+			_selectedList[i]=0;
+		}
+		int _cachedListLength = getLinkedListLength(_multiList);
+		// Length of the list is 1 based, so using less than is okay.
+		for (i=0;i<_cachedListLength;i++){
+			NathanLinkedList* _lastGet = getLinkedList(_multiList,i+1);
+			if (_lastGet->memory!=NULL){
+				// Is one based, so minus one.
+				_selectedList[(int)*(_lastGet->memory)-1]=1;
+			}
+		}
+	}
 	signed int _valueToReturn=-1;
 	int _framesUntilScroll=60;
 	int _scrollCharOffset=0;
@@ -164,11 +184,26 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_CROSS)){
-			_valueToReturn = _selection+1;
-			break;
+			if (_multiList==NULL){
+				_valueToReturn = _selection+1;
+				break;
+			}else{
+				if (_selectedList[_selection]==0){
+					_selectedList[_selection]=1;
+				}else if (_selectedList[_selection]==1){
+					_selectedList[_selection]=0;
+				}
+			}
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
-			_valueToReturn = -1;
-			break;
+			if (_multiList!=NULL){
+				if (popupMessage("Are you sure you would like to go back? You will loose all your selected entries. (If you want to keep your selected entries, answer \"no\" to this question then press START.)",1,1)==1){
+					_valueToReturn = -1;
+					break;
+				}
+			}else{
+				_valueToReturn = -1;
+				break;
+			}
 		}else if (WasJustPressed(SCE_CTRL_SQUARE)){
 			// SEARCH LIST FUNCTION
 			char* _tempUserAnswer = userKeyboardInput(_lastUserSearchTerm!=NULL ? _lastUserSearchTerm : "","Search",99);
@@ -203,19 +238,58 @@ int showList(char** _currentList, int _listSize, int _startingSelection){
 				}
 			}
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
+		}else if (WasJustPressed(SCE_CTRL_START)){
+			if (_multiList!=NULL){
+				freeLinkedList(_multiList);
+				_multiList = calloc(1,sizeof(NathanLinkedList));
+				for (i=0;i<_listSize;i++){
+					if (_selectedList[i]==1){
+						NathanLinkedList* _lastAddedEntry = addToLinkedList(_multiList);
+						_lastAddedEntry->memory = calloc(1,sizeof(int));
+						*(_lastAddedEntry->memory)=i+1;
+					}
+				}
+				_valueToReturn = (int)(_multiList);
+				break;
+			}
 		}
 		ControlsEnd();
 
 		StartDrawing();
 		for (i=0;i<_optionsPerScreen;i++){
 			if (i+_selectionListOffset!=_selection){
-				GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+				if (_multiList==NULL){
+					GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+				}else{
+					if (_selectedList[i+_selectionListOffset]==1){
+						GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLORMARKED);
+					}else{
+						GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+					}
+				}
 			}
 		}
-		if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
-			GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+		if (_multiList==NULL){
+			if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
+				GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+			}else{
+				GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+			}
 		}else{
-			GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+			if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
+				if (_selectedList[_selection]==1){
+					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORMARKEDHOVER);
+				}else{
+					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+				}
+			}else{
+				if (_selectedList[_selection]==1){
+					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORMARKEDHOVER );
+				}else{
+					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+				}
+				
+			}
 		}
 		GoodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
 		EndDrawing();
@@ -379,11 +453,14 @@ int strlenNO1(char* src){
 	return len;
 }
 #define TEXTBOXY 0
-void popupMessage(const char* _tempMsg, char _waitForAButton){
+char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	ControlsEnd();
 	// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
-	char message[strlen(_tempMsg)+1];
+	char message[strlen(_tempMsg)+1+strlen("\n(X for YES, O for NO)")];
 	strcpy(message,_tempMsg);
+	if (_isQuestion==1){
+		strcat(message,"\n(X for YES, O for NO)");
+	}
 	int totalMessageLength = strlen(message);
 	int i, j;
 	signed short _numberOfLines=1;
@@ -439,10 +516,19 @@ void popupMessage(const char* _tempMsg, char _waitForAButton){
 		int _lastStrlen=0;
 		if (WasJustPressed(SCE_CTRL_CROSS)){
 			if (_numberOfLines<=0){
+				if (_isQuestion==1){
+					ControlsEnd();
+					return 1;
+				}
 				break;
 			}
 			offsetStrlen += strlen(&message[offsetStrlen])+1;
 			_numberOfLines--;
+		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			if (_isQuestion==1){
+				ControlsEnd();
+				return 0;
+			}
 		}
 		ControlsEnd();
 		StartDrawing();
@@ -460,7 +546,7 @@ void popupMessage(const char* _tempMsg, char _waitForAButton){
 		FpsCapWait();
 	}while(_waitForAButton==1);
 	ControlsEnd();
-	return;
+	return 0;
 }
 void freeQueue(int _maxQueue){
 	int i;
@@ -553,10 +639,10 @@ void doScript(char* luaFileToUse){
 	strcpy(luaFilenameComplete,downloadersLocation);
 	strcat(luaFilenameComplete,luaFileToUse);
 	if (luaL_dofile(L,luaFilenameComplete)!=0){
-		popupMessage("Failed to run Lua file.",0);
+		popupMessage("Failed to run Lua file.",0,0);
 	}
 	if (lua_getglobal(L,"MyLegGuy_Download")==0){
-		popupMessage("Could not find MyLegGuy_Download function.",1);
+		popupMessage("Could not find MyLegGuy_Download function.",1,0);
 		lua_pop(L,1);
 		return;
 	}else{
@@ -572,8 +658,8 @@ char* chooseScript(){
 	CROSSDIRSTORAGE lastStorage;
 	dir = openDirectory (downloadersLocation);
 	if (dirOpenWorked(dir)==0){
-		popupMessage("Script directory missing! It should've been included in the VPK. So....MyLegGuy probably forgot to include it with the VPK. You should go give him a heads up. Pressing X will show you the path of the folder that is supposed to exist.",1);
-		popupMessage(downloadersLocation,1);
+		popupMessage("Script directory missing! It should've been included in the VPK. So....MyLegGuy probably forgot to include it with the VPK. You should go give him a heads up. Pressing X will show you the path of the folder that is supposed to exist.",1,0);
+		popupMessage(downloadersLocation,1,0);
 		return NULL;
 	}
 	char* _filenames[MAXFILES]={NULL};
@@ -586,7 +672,7 @@ char* chooseScript(){
 		strcpy(_filenames[i],getDirectoryResultName(&lastStorage));
 	}
 	directoryClose (dir);
-	int _userChosenFileIndex = showList(_filenames,i,0);
+	int _userChosenFileIndex = showList(_filenames,i,0,NULL);
 	if (_userChosenFileIndex==-1){
 		return NULL;
 	}
@@ -740,6 +826,9 @@ int L_waitForUserInputs(lua_State* passedState){
 			userInputResults[i] = malloc(sizeof(int));
 			*((int*)userInputResults[i])=1;
 			pushUserInput(passedState,userInputResults[i],inputTypeQueue[i],i+1);
+		}else if (inputTypeQueue[i]==INPUTTYPELISTMULTI){
+			// Must be calloc because we check if a pointer in this struct is NULL.
+			userInputResults[i] = calloc(1,sizeof(NathanLinkedList));
 		}else{
 			userInputResults[i]=NULL;
 		}
@@ -866,7 +955,7 @@ int L_waitForUserInputs(lua_State* passedState){
 							}
 						}
 					}else{
-						popupMessage("Slot file does not exist.",1);
+						popupMessage("Slot file does not exist.",1,0);
 					} // Load button
 				}else if (_selection>=currentQueue+2){
 					break;
@@ -877,15 +966,26 @@ int L_waitForUserInputs(lua_State* passedState){
 				}
 			}
 			if (_selection<currentQueue){
-				if (inputTypeQueue[_selection]==INPUTTYPELIST){
+				if (inputTypeQueue[_selection]==INPUTTYPELIST || inputTypeQueue[_selection]==INPUTTYPELISTMULTI){
+					// This is only the list initialization. Look past the "else if" statements to find another if statement that contains the code for showing the list and stuff.
 					int _currentList=_selection;
 					callListInit(passedState,_currentList+1,_listEntries[_currentList]==NULL);
 					_listEntriesLength[_currentList] = assignAfterListInit(passedState,&(_listEntries[_currentList]),_listEntriesLength[_currentList],-1);
+					// Code specific to list or multi list.
 					if (_listEntries[_currentList]!=NULL){
-						int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1); // Subtract 1 from starting index because result was one based.
-						if (_tempUserAnswer!=-1){
-							*((int*)(userInputResults[_currentList]))=_tempUserAnswer;
-							pushUserInput(passedState,userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
+						if (inputTypeQueue[_currentList]==INPUTTYPELIST){
+							int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1,NULL); // Subtract 1 from starting index because result was one based.
+							if (_tempUserAnswer!=-1){
+								*((int*)(userInputResults[_currentList]))=_tempUserAnswer;
+								pushUserInput(passedState,userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
+							}
+						}else if (inputTypeQueue[_currentList]==INPUTTYPELISTMULTI){
+							NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],/*TODO - Start index*/0,(NathanLinkedList*)userInputResults[_currentList]);
+							if ((signed int)_tempUserAnswer!=-1){
+								userInputResults[_currentList] = _tempUserAnswer;
+								// TODO - Push multi-list results, don't forget to check for null memory pointer for list of 0 length.
+								printf("Push results here.\n");
+							}
 						}
 						callListFinish(passedState,_currentList+1);
 					}
@@ -948,7 +1048,11 @@ int L_waitForUserInputs(lua_State* passedState){
 	freeQueue(currentQueue);
 	for (i=0;i<currentQueue;i++){
 		if (userInputResults[currentQueue]!=NULL){ // Empty string inputs will be NULL pointer
-			free(userInputResults[i]);
+			if (inputTypeQueue[currentQueue]==INPUTTYPELISTMULTI){
+				freeLinkedList(userInputResults[i]);
+			}else{
+				free(userInputResults[i]);
+			}
 		}
 	}
 	currentQueue=0;
@@ -960,11 +1064,11 @@ int L_waitForUserInputs(lua_State* passedState){
 	return 1;
 }
 int L_userPopupMessage(lua_State* passedState){
-	popupMessage(lua_tostring(passedState,1),1);
+	popupMessage(lua_tostring(passedState,1),1,0);
 	return 0;
 }
 int L_showStatus(lua_State* passedState){
-	popupMessage(lua_tostring(passedState,-1),0);
+	popupMessage(lua_tostring(passedState,-1),0,0);
 	return 0;
 }
 int L_WriteToDebugFile(lua_State* passedState){

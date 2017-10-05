@@ -209,7 +209,7 @@
 							pad[SCE_CTRL_SQUARE]=1;
 						}else if (e.key.keysym.sym==SDLK_s){ /* Triangle */
 							pad[SCE_CTRL_TRIANGLE]=1;
-						}else if (e.key.keysym.sym==SDLK_ESCAPE){ /* Start */
+						}else if (e.key.keysym.sym==SDLK_ESCAPE || e.key.keysym.sym==SDLK_RETURN){ /* Start */
 							pad[SCE_CTRL_START]=1;
 						}else if (e.key.keysym.sym==SDLK_e){ /* Select */
 							pad[SCE_CTRL_SELECT]=1;
@@ -233,7 +233,7 @@
 							pad[SCE_CTRL_SQUARE]=0;
 						}else if (e.key.keysym.sym==SDLK_s){ /* Triangle */
 							pad[SCE_CTRL_TRIANGLE]=0;
-						}else if (e.key.keysym.sym==SDLK_ESCAPE){ /* Start */
+						}else if (e.key.keysym.sym==SDLK_ESCAPE || e.key.keysym.sym==SDLK_RETURN){ /* Start */
 							pad[SCE_CTRL_START]=0;
 						}else if (e.key.keysym.sym==SDLK_e){ /* Select */
 							pad[SCE_CTRL_SELECT]=0;

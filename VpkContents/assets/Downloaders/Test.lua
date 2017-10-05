@@ -5,7 +5,7 @@ function onOptionsLoad()
 end
 
 function InitList01(isFirstTime)
-	if (isFirstTime==true) then
+	if (isFirstTime==1) then
 		good = {};
 		for i=1,20 do
 			table.insert(good,"(custom name " .. i .. " )");
@@ -16,7 +16,7 @@ function InitList01(isFirstTime)
 end
 
 function InitList02(isFirstTime)
-	if (isFirstTime==true) then
+	if (isFirstTime==1) then
 		good = {};
 		table.insert(good,"a");
 		table.insert(good,"b");
@@ -42,7 +42,7 @@ end
 
 function MyLegGuy_Download()
 	print(SCRIPTVERSION .. " is script version")
-	userInputQueue("Mode","Choose \"Manga\" or \"Doujin.\"",INPUTTYPELIST)
+	userInputQueue("Mode","Choose \"Manga\" or \"Doujin.\"",INPUTTYPELISTMULTI)
 	userInputQueue("Mode2","mode2 text here",INPUTTYPELIST)
 	userInputQueue("Mode3","big list test",INPUTTYPELIST)
 	userInputQueue("Number","(int) Self explanatory",INPUTTYPENUMBER)
