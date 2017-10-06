@@ -21,9 +21,9 @@ function onOptionsLoad()
 			break;
 		end
 	end
-	if (#chapterListFriendly==0) then
-		GetChapterList(seriesListUrl[userInput01])
-	end
+	--if (#chapterListFriendly==0) then
+	GetChapterList(seriesListUrl[userInput01])
+	--end
 end
 --https:--dynasty-scans.com/xxxx
 --Stores the completed xxxx part
@@ -151,7 +151,13 @@ function input2_EndList01()
 		assignListData(currentQueueCLists,currentQueueCListsLength,1,chapterListFriendly)
 	end
 end
+
 function input2_InitList02(isFirstTime)
+	if (userInput01~=nil) then
+		if (isFirstTime>=1) then
+			return chapterListFriendly;
+		end
+	end
 	return nil;
 end
 function DownloadCover(downloadLocation, coverSeriesPartUrl)

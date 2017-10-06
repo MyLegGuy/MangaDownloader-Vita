@@ -1,6 +1,4 @@
 /*
-TODO - Queue multiple chapters?
-	New input type INPUTTYPENUMBERQUEUE?
 */
 #define VERSION 1
 
@@ -968,7 +966,7 @@ int L_waitForUserInputs(lua_State* passedState){
 						}
 						// Call all list init functions
 						for (i=0;i<currentQueue;i++){
-							if (inputTypeQueue[i]==INPUTTYPELIST){
+							if (inputTypeQueue[i]==INPUTTYPELIST || inputTypeQueue[i]==INPUTTYPELISTMULTI){
 								callListInit(passedState,i+1,2);
 								_listEntriesLength[i] = assignAfterListInit(passedState,&(_listEntries[i]),_listEntriesLength[i],-1);
 							}

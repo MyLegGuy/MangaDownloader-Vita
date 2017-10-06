@@ -18,7 +18,8 @@ function onOptionsLoad()
 			break;
 		end
 	end
-	setUserInput(2,tonumber(userLoad02));
+	getChapterList(seriesListUrl[userInput01])
+	setUserInput(2,0);
 end
 
 function getSeriesList()
@@ -199,6 +200,9 @@ end
 
 
 function InitList02(isFirstTime)
+	if (isFirstTime>=1) then
+		return chapterListFriendly
+	end
 	return nil;
 end
 
