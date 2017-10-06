@@ -211,7 +211,7 @@ int showList(char** _currentList, int _listSize, int _startingSelection, NathanL
 				free(_lastUserSearchTerm);
 				_lastUserSearchTerm=NULL;
 			}
-			if (_lastUserSearchTerm!=NULL){
+			if (_tempUserAnswer!=NULL){
 				_lastUserSearchTerm = _tempUserAnswer;
 				//_lastUserSearchTerm = 
 				for (i=0;i<_listSize;i++){

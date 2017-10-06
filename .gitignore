@@ -50,6 +50,7 @@ Temporary Items
 bin/
 lib/
 trash/
+_DevStuff/Manual_WIP/
 *.elf
 *.vpk
 *.velf

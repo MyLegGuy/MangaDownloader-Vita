@@ -12,7 +12,7 @@ function MyLegGuy_Download()
 	ResetUserChoices();
 
 	local _urlEndName="";
-	userInputQueue("ID","Choose a doujin, go to the overview page where you can see all the pages, and input what you find at the end of the url.\nFor example, \"pgpmysn2\" from https://doujins.com/pgpmysn2",INPUTTYPESTRING)
+	userInputQueue("ID","Choose a doujin, go to the overview page where you can see all the pages, and input what you find at the end of the url. For example, \"pgpmysn2\" from https://doujins.com/pgpmysn2",INPUTTYPESTRING)
 	if (waitForUserInputs()==false) then
 		return;
 	end
