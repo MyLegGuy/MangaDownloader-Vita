@@ -139,7 +139,7 @@
 		
 					if (result.button == SCE_IME_DIALOG_BUTTON_CLOSE) {
 						status = IME_DIALOG_RESULT_CANCELED;
-						break;
+						//break;
 					} else {
 						// Convert result to utf8 and put result in _resultText
 						utf16_to_utf8(ime_input_text_utf16, ime_input_text_utf8);

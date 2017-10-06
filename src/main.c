@@ -211,17 +211,19 @@ int showList(char** _currentList, int _listSize, int _startingSelection, NathanL
 				free(_lastUserSearchTerm);
 				_lastUserSearchTerm=NULL;
 			}
-			_lastUserSearchTerm = _tempUserAnswer;
-			//_lastUserSearchTerm = 
-			for (i=0;i<_listSize;i++){
-				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
-					_selection=i;
-					_lastSearchResult=i;
-					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-					break;
+			if (_lastUserSearchTerm!=NULL){
+				_lastUserSearchTerm = _tempUserAnswer;
+				//_lastUserSearchTerm = 
+				for (i=0;i<_listSize;i++){
+					if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
+						_selection=i;
+						_lastSearchResult=i;
+						_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+						break;
+					}
 				}
+				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 			}
-			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
 			for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
 				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
@@ -1026,12 +1028,18 @@ int L_waitForUserInputs(lua_State* passedState){
 					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
 				}else if (inputTypeQueue[_selection]==INPUTTYPESTRING){
 					userInputResults[_selection] = userKeyboardInput(userInputResults[_selection]!=NULL ? userInputResults[_selection] : "",shortNameQueue[_selection],99);
-					pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+					if (userInputResults[_selection]!=NULL){
+						pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+					}
 				}
 			}
 		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
 			_userDidQuit=1;
 			break;
+		}else if (WasJustPressed(SCE_CTRL_SQUARE)){
+			if (_selection<currentQueue){
+				popupMessage(longNameQueue[_selection],1,0);
+			}
 		}
 		ControlsEnd();
 		StartDrawing();
