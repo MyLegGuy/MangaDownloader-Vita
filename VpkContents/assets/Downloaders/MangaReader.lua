@@ -3,8 +3,13 @@
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
 
+extraStatusPrefix="";
+
 seriesListUrl = {};
 seriesListFriendly = {};
+
+chapterListUrl = {};
+chapterListFriendly = {};
 
 function onOptionsLoad()
 	for i=1,#seriesListFriendly do
@@ -112,7 +117,7 @@ end
 
 
 function downloadFindNumberOfPages()
-	showStatus("Getting number of pages...")
+	showStatus(extraStatusPrefix .. "Getting number of pages...")
 	_mangaPageSample = downloadString("http://www.mangareader.net/" .. currentDownloadName .. "/" .. tostring(currentDownloadChapterNumber) .. "/1")
 	if (downloadFailed) then
 		return false;
@@ -143,7 +148,7 @@ function downloadPage(_mangaName,_mangaChapter,_mangaPageNumber,_saveLocation)
 	local _subdomain;
 	local _fileNumber;
 	_fileNumber, _subdomain = downloadGetUrlData(_mangaName,_mangaChapter,_mangaPageNumber);
-	showStatus("Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
+	showStatus(extraStatusPrefix .. "Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
 	downloadFile(("http://" .. _subdomain .. ".mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaName .. "-" .. _fileNumber .. ".jpg"),(_saveLocation .. string.format("%03d",_mangaPageNumber) .. ".jpg"));
 end
 
@@ -190,13 +195,58 @@ function InitList01(isFirstTime)
 	end
 	return nil;
 end
+
+
+
+function InitList02(isFirstTime)
+	return nil;
+end
+
+function EndList01()
+	getChapterList(seriesListUrl[userInput01])
+	if (#chapterListFriendly>0) then
+		assignListData(currentQueueCLists,currentQueueCListsLength,1,chapterListFriendly)
+	end
+end
+
+function getChapterList(seriesname)
+	showStatus("Getting chapter list...")
+	chapterListUrl = {};
+	chapterListFriendly = {};
+	local _listHtml = downloadString("http://www.mangareader.net" .. seriesname);
+	local _lastFound = string.find(_listHtml,"chapterlist",1,true);
+	local i=1;
+	while (true) do
+		--[[
+			<tr>
+			<td>
+			<div class="chico_manga"></div>
+			<a href="/naruto/1">Naruto 1</a> : Uzumaki Naruto</td>
+			<td>07/04/2009</td>
+			</tr>
+		]]
+		local _linkStart = string.find(_listHtml,"<a href=",_lastFound+1,true);
+		local _firstQuotationMark = string.find(_listHtml,"\"",_linkStart+1,true);
+		_lastFound = string.find(_listHtml,"\"",_firstQuotationMark+1,true);
+		local _lastFoundUrl = string.sub(_listHtml,_firstQuotationMark+1,_lastFound-1);
+		if (_lastFoundUrl=="http://www.animefreak.tv") then
+			break;
+		end
+		_lastFoundUrl = string.match(_lastFoundUrl,".*/(.*)")
+		table.insert(chapterListUrl,_lastFoundUrl);
+		--_firstQuotationMark = string.find(_listHtml,">",_lastFound+1,true);
+		--_lastFound = string.find(_listHtml,"<",_firstQuotationMark+1,true);
+		--_lastFoundUrl = string.sub(_listHtml,_firstQuotationMark+1,_lastFound-1);
+		table.insert(chapterListFriendly,tostring(i));
+		i=i+1
+	end
+end
+
 function MyLegGuy_Download()
 	ResetUserChoices();
-
 	getSeriesList();
-
 	userInputQueue("Series","Choose the manga series.",INPUTTYPELIST);
-	userInputQueue("Chapter","(int) Self explanatory",INPUTTYPENUMBER)
+	userInputQueue("Chapter","(int) Self explanatory",INPUTTYPELISTMULTI)
 	if (waitForUserInputs(1)==false) then
 		return;
 	end
@@ -207,14 +257,20 @@ function MyLegGuy_Download()
 	--if (waitForUserInputs(1)==false) then
 	--	return;
 	--end
-	_mangaNameToDownload = seriesListUrl[userInput01];
-	-- Remove starting slash
-	_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
-	_chapterNumberToDownload = userInput02;
-	_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
-	initializeDownloadMenu()
-	currentDownloadName = _mangaNameToDownload
-	currentDownloadChapterNumber = _chapterNumberToDownload
-	currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
-	downloadDoTheThing()
+
+	for i=1,#userInput02 do
+		extraStatusPrefix = ("Chapter " .. i .. "/" .. tostring(#userInput02) .. "\n" .. "\"" .. chapterListUrl[userInput02[i]] .. "\"" .. "\n");
+		_mangaNameToDownload = seriesListUrl[userInput01];
+		-- Remove starting slash
+		_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
+		_chapterNumberToDownload = tonumber(userInput02[i]);
+		_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
+		initializeDownloadMenu()
+		currentDownloadName = _mangaNameToDownload
+		currentDownloadChapterNumber = _chapterNumberToDownload
+		currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
+		downloadDoTheThing()
+	end
+
+	
 end
