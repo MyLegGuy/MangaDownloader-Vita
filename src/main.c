@@ -226,21 +226,23 @@ int showList(char** _currentList, int _listSize, int _startingSelection, NathanL
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 			}
 		}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
-			for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
-				if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
-					_selection=i;
-					_lastSearchResult=i;
-					_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
-					break;
-				}
-				if (i==_listSize-1){
-					if (_lastSearchResult!=0){
-						i=0;
-						_lastSearchResult=0;
+			if (_lastUserSearchTerm!=NULL){
+				for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
+					if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
+						_selection=i;
+						_lastSearchResult=i;
+						_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
+						break;
+					}
+					if (i==_listSize-1){
+						if (_lastSearchResult!=0){
+							i=0;
+							_lastSearchResult=0;
+						}
 					}
 				}
+				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 			}
-			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 		}else if (WasJustPressed(SCE_CTRL_START)){
 			if (_multiList!=NULL){
 				freeLinkedList(_multiList);
