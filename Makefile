@@ -24,7 +24,6 @@ all: $(TARGET).vpk
 	--add VpkContents/sce_sys/livearea/contents/bg.png=sce_sys/livearea/contents/bg.png \
 	--add VpkContents/sce_sys/livearea/contents/startup.png=sce_sys/livearea/contents/startup.png \
 	--add VpkContents/sce_sys/livearea/contents/template.xml=sce_sys/livearea/contents/template.xml \
-	--add VpkContents/sce_sys/manual/001.png=sce_sys/manual/001.png \
 	MangaDownloader.vpk
 
 eboot.bin: $(TARGET).velf

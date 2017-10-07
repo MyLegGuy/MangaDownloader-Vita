@@ -64,11 +64,15 @@
 			res = curl_easy_perform(curl_handle);
 			if(res != CURLE_OK) {
 				WriteToDebugFile("Failed, the world is over.\n");
+				WriteIntToDebugFile((int)res);
 			}
 			*_toStoreWebpageData = chunkToDownloadTo.memory;
 			if (_toStoreSize!=NULL){
 				*_toStoreSize = chunkToDownloadTo.size;
 			}
+		}
+		void disableSSL(){
+			curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 		}
 		void initDownload(){
 			#if PLATFORM == PLAT_VITA

@@ -55,6 +55,7 @@
 
 // main.h
 	void WriteToDebugFile(const char* stuff);
+	void WriteIntToDebugFile(int a);
 	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
 
 #include "GeneralGoodConfig.h"
@@ -1111,8 +1112,12 @@ int L_showStatus(lua_State* passedState){
 	popupMessage(lua_tostring(passedState,-1),0,0);
 	return 0;
 }
-int L_WriteToDebugFile(lua_State* passedState){
+int L_writeToDebugFile(lua_State* passedState){
 	WriteToDebugFile(lua_tostring(passedState,1));
+	return 0;
+}
+int L_disableSSL(lua_State* passedState){
+	disableSSL();
 	return 0;
 }
 void MakeLuaUseful(){
@@ -1133,7 +1138,8 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_setUserInput,"setUserInput");
 	LUAREGISTER(L_printListStuff,"printListStuff");
 	LUAREGISTER(L_assignListData,"assignListData");
-	LUAREGISTER(L_WriteToDebugFile,"WriteToDebugFile");
+	LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
+	LUAREGISTER(L_disableSSL,"disableSSL");
 }
 /*============================================================================*/
 void init(){
