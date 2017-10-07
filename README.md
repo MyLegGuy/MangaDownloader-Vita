@@ -21,5 +21,5 @@ Refer to the digital manual for more information. (Can be accessed from the Live
 
 ### Support
 
-You may ask questions in the [**issues**](https://github.com/MyLegGuy/MangaDownloader-Vita) section.
+You may ask questions in the [**issues**](https://github.com/MyLegGuy/MangaDownloader-Vita/issues) section.
 Make sure you check the manual first, though.
