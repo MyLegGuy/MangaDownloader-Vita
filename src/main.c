@@ -1090,7 +1090,9 @@ int L_waitForUserInputs(lua_State* passedState){
 	for (i=0;i<currentQueue;i++){
 		if (userInputResults[currentQueue]!=NULL){ // Empty string inputs will be NULL pointer
 			if (inputTypeQueue[currentQueue]==INPUTTYPELISTMULTI){
-				freeLinkedList(userInputResults[i]);
+				if (((NathanLinkedList*)userInputResults[i])->memory!=NULL){
+					freeLinkedList(userInputResults[i]);
+				}
 			}else{
 				free(userInputResults[i]);
 			}

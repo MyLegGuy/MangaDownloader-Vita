@@ -39,6 +39,9 @@
 			return realsize;
 		}
 		size_t curlWriteDataFile(void *ptr, size_t size, size_t nmemb, void *stream){
+			#if PLATFORM == PLAT_VITA
+				sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
+			#endif
 			size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
 			return written;
 		}
