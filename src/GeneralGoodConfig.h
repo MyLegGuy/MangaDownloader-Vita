@@ -10,6 +10,7 @@
 	
 	#define SUB_NONE 0
 	#define SUB_ANDROID 1
+	#define SUB_UNIX 2
 	
 	#define SND_NONE 0
 	#define SND_SDL 1
@@ -37,7 +38,9 @@
 	#if _WIN32
 		#define PRESET PRE_WINDOWS
 	#elif __unix__
-		#error no
+		#define PRESET PRE_WINDOWS
+		#define SUBPLATFORM SUB_UNIX
+		//#error no
 	#endif
 
 	//===============================
@@ -52,25 +55,21 @@
 
 	#if PRESET == PRE_WINDOWS
 		#define PLATFORM PLAT_WINDOWS
-		#define SUBPLATFORM SUB_NONE
 		#define SOUNDPLAYER SND_NONE
 		#define RENDERER REND_SDL
 		#define TEXTRENDERER TEXT_FONTCACHE
 	#elif PRESET == PRE_VITA
 		#define PLATFORM PLAT_VITA
-		#define SUBPLATFORM SUB_NONE
 		#define SOUNDPLAYER SND_NONE
 		#define RENDERER REND_VITA2D
 		#define TEXTRENDERER TEXT_VITA2D
 	#elif PRESET == PRE_3DS
 		#define PLATFORM PLAT_3DS
-		#define SUBPLATFORM SUB_NONE
 		#define SOUNDPLAYER SND_NONE
 		#define RENDERER REND_SF2D
 		#define TEXTRENDERER TEXT_DEBUG
 	#elif PRESET == PRE_ANDROID
 		#define PLATFORM PLAT_WINDOWS
-		#define SUBPLATFORM SUB_ANDROID
 		#define SOUNDPLAYER SND_SDL
 		#define RENDERER REND_SDL
 		#define TEXTRENDERER TEXT_FONTCACHE
@@ -81,6 +80,10 @@
 		// #define SOUNDPLAYER a
 		// #define RENDERER a
 		// #define TEXTRENDERER a
+	#endif
+
+	#ifndef SUBPLATFORM
+		#define SUBPLATFORM SUB_NONE
 	#endif
 
 #endif

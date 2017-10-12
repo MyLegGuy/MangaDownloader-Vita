@@ -11,6 +11,11 @@
 	#include <stdlib.h>
 	#include <unistd.h>
 	
+	#if SUBPLATFORM == SUB_UNIX
+		#include <sys/types.h>
+		#include <sys/stat.h>
+	#endif
+	
 	#if PLATFORM == PLAT_WINDOWS
 		// Header for directory functions
 		#include <dirent.h>
@@ -114,7 +119,7 @@
 		#if PLATFORM == PLAT_VITA
 			sceIoMkdir(path,0777);
 		#elif PLATFORM == PLAT_WINDOWS
-			#if SUBPLATFORM == SUB_ANDROID
+			#if SUBPLATFORM == SUB_ANDROID || SUBPLATFORM == SUB_UNIX
 				mkdir(path,0777);
 			#else
 				mkdir(path);

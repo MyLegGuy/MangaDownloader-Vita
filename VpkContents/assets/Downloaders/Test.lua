@@ -56,6 +56,7 @@ function EndList01()
 end
 
 function MyLegGuy_Download()
+	print(_a)
 	print(SCRIPTVERSION .. " is script version")
 	userInputQueue("Mode2","mode2 text here",INPUTTYPELIST)
 	userInputQueue("Mode","Choose \"Manga\" or \"Doujin.\"",INPUTTYPELISTMULTI)

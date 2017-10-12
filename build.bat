@@ -1,1 +1,1 @@
-gcc ./../_SharedCode/SDL_FontCache.c src/main.c -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -Llib -llua -lcurldll -lSDL2_ttf -o bin/a.exe
+gcc -I./../_SharedCode/ ./../_SharedCode/SDL_FontCache.c src/main.c -lmingw32 -lSDL2main -lSDL2 -lSDL2_image -Llib -llua -lcurldll -lSDL2_ttf -o bin/a.exe

@@ -1,0 +1,3 @@
+#!/bin/bash
+# for linux build
+gcc -I./../_SharedCode/ ./../_SharedCode/SDL_FontCache.c src/main.c -lm `sdl2-config --cflags --libs` -lSDL2_image -lSDL2_ttf -Llib -llua -lcurl -ldl -o bin/a.exe

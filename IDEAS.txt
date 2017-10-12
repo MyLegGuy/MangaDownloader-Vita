@@ -1,0 +1,10 @@
+Presented with main menu similar to 3ds Manga Reader.
+Main function works the same
+There are two download options.
+"As I go" and "Wait."
+"Wait" is what I've programmed so far.
+	Select options, and then wait for it to download.
+"As I go" will prompt you to enter the series and chapter, wait for the first page, and then send you right to the reader.
+Via a second thread, more images will continue to download as you read.
+(We'll start at 001.whatever and continue on incrementing by 1 because the filenames are predictable. Also, have a variable that says if we're finished downloading.)
+	"As I go" may only support one chapter at a time.
