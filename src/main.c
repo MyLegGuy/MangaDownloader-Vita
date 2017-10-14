@@ -24,11 +24,11 @@ int currentTextHeight=0;
 int screenHeight;
 int screenWidth;
 int cursorWidth;
+void WriteToDebugFile(const char* stuff);
 #include "photo.h"
 #include "Downloader.h"
 
 /////////////////////////////////////////////////////////
-#define TEXTBOXY 0
 char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	ControlsEnd();
 	// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
@@ -111,7 +111,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 		// We need this variable so we know the offset in the message for the text that is for the next line
 		_lastStrlen=0;
 		for (i=0;i<currentlyVisibleLines;i++){
-			GoodDrawTextColored(5,TEXTBOXY+TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
+			GoodDrawTextColored(5,TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
 			// This offset will have the first letter for the next line
 			_lastStrlen = strlen(&message[_lastStrlen+offsetStrlen])+1+_lastStrlen;
 			if (_lastStrlen>=totalMessageLength){
@@ -124,7 +124,6 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	ControlsEnd();
 	return 0;
 }
-
 void WriteToDebugFile(const char* stuff){
 	#if PLATFORM == PLAT_VITA
 		FILE *fp;
@@ -153,7 +152,6 @@ void WriteIntToDebugFile(int a){
 		printf("Write: %d\n",a);
 	#endif
 }
-
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
@@ -166,28 +164,21 @@ void init(){
 	// Make data folder
 	FixPath("",tempPathFixBuffer,TYPE_DATA);
 	createDirectory(tempPathFixBuffer);
+
+	#if PLATFORM == PLAT_VITA
+		// Magic fix for joysticks
+		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
+	#endif
 }
 int main(int argc, char *argv[]){
 	init();
-	// Magic fix for joysticks
-	sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
 	initDownloadBroad();
-	doScript(chooseScript(),1);
-	// Free filenames, excluding the one we need. TODO
-	//int i;
-	//for (i=0;_mangaDirectoryFilenames[i]!=NULL;i++){
-	//	free(_mangaDirectoryFilenames[i]);
-	//}
+	char* _noobList[2];
+	_noobList[0] = "Download and wait";
+	_noobList[1] = "Download as I go";
+	doScript(chooseScript(),showList(_noobList, 2, 0, NULL)-1);
 
 	//initDownloadBroad();
 	//doScript(chooseScript());
 	return 0;
 }
-/*
-TODO - The bug happens when I'm trying to move to the next page.
-There is a 0 byte file and the game crashes. It is currently unknown
-why it scans, finds, and tries to go to a zero byte file.
-
-TODO - Add elegant LUA method called like setIsDone();
-to tell main program when manga is finished downloading.
-*/

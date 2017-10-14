@@ -19,10 +19,60 @@
 	Changes:
 	=======
 	When the image is horizontal, right and left will be used to zoom.
+	Added debug code for Windows
 */
 
 #ifndef __PHOTO_H__
 #define __PHOTO_H__
+
+#if PLATFORM == PLAT_WINDOWS
+
+void sceKernelDelayThread(int _noob){
+	FpsCapStart();
+	FpsCapWait();
+}
+
+void readPad(){
+	ControlsStart();
+	ControlsEnd();
+}
+
+// My code
+#include "photoExtended.h"
+
+void photoViewer(){
+	printf("View\n");
+	CrossTexture* tex=NULL;
+	char* _currentRelativeFilename=NULL;
+	int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+	if (_initialLoadResult==LOADNEW_DIDNTLOAD){
+		printf("failed to load.\n");
+		return;
+	}
+	while (1){
+		FpsCapStart();
+		StartDrawing();
+		DrawTexture(tex,0,0);
+		EndDrawing();
+		ControlsStart();
+		if (WasJustPressed(SCE_CTRL_RIGHT) || WasJustPressed(SCE_CTRL_LEFT)){
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,WasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
+			if (_loadResult==LOADNEW_LOADEDNEW){
+				printf("loaded new!\n");
+			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
+				printf("Done with manga.\n");
+				return;
+			}
+		}
+		ControlsEnd();
+		FpsCapWait();
+	}
+}
+
+
+#endif
+#if PLATFORM == PLAT_VITA
+
 
 #define ALIGN_CENTER(a, b) (((a)-(b)) / 2)
 #define ALIGN_RIGHT(x, w) ((x)-(w))
@@ -70,7 +120,7 @@ enum PhotoModes {
 #define ZOOM_TEXT_TIME 2 * 1000 * 1000
 
 //int photoViewer(const char *file, int type, FileList *list, FileListEntry *entry, int *base_pos, int *rel_pos);
-
+void readPad();
 // My code
 #include "photoExtended.h"
 
@@ -285,8 +335,11 @@ void photoViewer() {
 			if (_isNextPage==0){
 				_isNextPage=-1;
 			}
-			if (loadNewPage(&tex,&_currentRelativeFilename,_isNextPage)==LOADNEW_LOADEDNEW){
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,_isNextPage);
+			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
+			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
+				return;
 			}
 		}
 
@@ -380,5 +433,7 @@ void photoViewer() {
 
 	return;
 }
+
+#endif
 
 #endif

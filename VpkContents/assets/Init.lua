@@ -46,8 +46,9 @@ end
 
 -- Will return with slash by default
 function getMangaFolder(endSlash)
+	--print("getMangaFolder was called.")
 	local _loadedMangaFolderRoot = rawGetMangaFolder();
-	if (endSlash==false) then
+	if (endSlash~=nil and endSlash==false) then
 		return string.sub(_loadedMangaFolderRoot,1,#_loadedMangaFolderRoot-1)
 	end
 	return _loadedMangaFolderRoot;

@@ -454,9 +454,9 @@
 		lua_pushnumber(passedState,_firstTime);
 		lua_call(passedState, 1, 1);
 		return 1;
-		}
-		// _listNumber should be 1 based
-		char callListFinish(lua_State* passedState, char _listNumber){
+	}
+	// _listNumber should be 1 based
+	char callListFinish(lua_State* passedState, char _listNumber){
 		char _listFunctionName[11];
 		sprintf(_listFunctionName,"EndList%02d",_listNumber);
 		if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
@@ -464,9 +464,9 @@
 		}
 		lua_pop(passedState,1);
 		return 1;
-		}
-		// Removes one from the stack
-		int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength, int _tableIndex){
+	}
+	// Removes one from the stack
+	int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength, int _tableIndex){
 		// If tables return a number, it means that no table avalible. Free old table
 		if (lua_type(passedState,_tableIndex)==LUA_TNUMBER || lua_type(passedState,_tableIndex)==LUA_TTABLE){
 			int j;
@@ -903,6 +903,7 @@
 									//*_noob = 1;
 									pushUserInput(passedState,userInputResults[_currentList],inputTypeQueue[_currentList],_currentList+1);
 								}
+								callListFinish(passedState,_currentList+1);
 							}else if (inputTypeQueue[_currentList]==INPUTTYPELISTMULTI){
 								NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))!=NULL ? *((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))-1 : 0,(NathanLinkedList*)userInputResults[_currentList]);
 								if ((intptr_t)_tempUserAnswer!=(intptr_t)-1){
@@ -1023,10 +1024,6 @@
 		disableSSL();
 		return 0;
 	}
-	int L_requireNewDirectorySearch(lua_State* passedState){
-		needUpdateFileListing=1;
-		return 0;
-	}
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
 		LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1047,7 +1044,10 @@
 		LUAREGISTER(L_assignListData,"assignListData");
 		LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
 		LUAREGISTER(L_disableSSL,"disableSSL");
+		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
+		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");
+		LUAREGISTER(L_setMangaDoneDownloading,"setMangaDoneDownloadingStatus");
 	}
 	/*============================================================================*/
 	void initDownloadBroad(){

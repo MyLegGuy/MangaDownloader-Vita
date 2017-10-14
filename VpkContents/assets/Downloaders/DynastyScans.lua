@@ -2,6 +2,7 @@ SCRIPTVERSION=1
 SAVEVARIABLE=0
 -- DoTheStuff was programmed in 12/7/16 in a C# program
 -- Other code was written starting on 9/5/17
+-- As I go mode integration started 10/14/17 12:28 AM
 urlPrefix = "https://dynasty-scans.com";
 completeDownloadFolderName="";
 
@@ -30,7 +31,9 @@ end
 --Should be something like "chapters/new_game_ch32"
 -- Folder name should not end in slash
 function DoTheStuff(completeMangaNameUrlSuffix,completeDownloadFolderName,_statusStringPrefix)
-	showStatus("Getting pages...");
+	if (isAsIGo==false) then
+		showStatus("Getting pages...");
+	end
 	local suffix = completeMangaNameUrlSuffix;
 	print("Downloading " .. suffix);
 
@@ -94,8 +97,15 @@ function DoTheStuff(completeMangaNameUrlSuffix,completeDownloadFolderName,_statu
 	local fileFormat = urls[1]:sub(string.len(urls[1]) - 3, (string.len(urls[1]) - 4)+4);
 	for i=1,numPages do
 		fileFormat = urls[i]:sub(string.len(urls[i]) - 3, (string.len(urls[i]) - 4)+4)
-		showStatus(_statusStringPrefix .. "Downloading " .. (i) .. "/" .. numPages);
+		if (isAsIGo==false) then
+			showStatus(_statusStringPrefix .. "Downloading " .. (i) .. "/" .. numPages);
+		end
 		downloadFile(realFileUrlPrefix .. urls[i], completeDownloadFolderName .. "/" .. string.format("%03d",i) .. fileFormat);
+		incrementTotalDownloadedFiles(1);
+		requireNewDirectorySearch();
+	end
+	if (isAsIGo==true) then
+		setMangaDoneDownloadingStatus(true);
 	end
 end
 function GetSeriesList(_retrieveSeriesUrl)
@@ -138,7 +148,8 @@ function input2_InitList01(isFirstTime)
 	-- If the user is just selecting this normally, reset their chapter choice.
 	-- isFirstTime value of 2 says that this called because of loading an options file. If an options file is loaded, it's definetly a valid chapter.
 	if (isFirstTime~=2) then
-		setUserInput(2,0); -- Reset chapter selection
+		-- Reset chapter selection
+		setUserInput(2,1);
 	end
 	if (isFirstTime>=1) then
 		return seriesListFriendly;
@@ -180,7 +191,8 @@ function boolToNumber(_bol)
 		return 0;
 	end
 end
-function MyLegGuy_Download()
+
+function MyLegGuy_Prompt()
 	ResetUserChoices();
 	-- Let user choose between doujin or manga
 	InitList01 = input1_InitList01;
@@ -207,7 +219,11 @@ function MyLegGuy_Download()
 	if (isDoujin==false) then
 		GetSeriesList("https://dynasty-scans.com/series");
 		userInputQueue("Series","The manga name. Selecting this option will reset your selected chapter.",INPUTTYPELIST);
-		userInputQueue("Chapter","The specific chapter of the manga. Specials will also be here.",INPUTTYPELISTMULTI);
+		if (isAsIGo==true) then
+			userInputQueue("Chapter","The specific chapter of the manga. Specials will also be here.",INPUTTYPELIST);
+		else
+			userInputQueue("Chapter","The specific chapter of the manga. Specials will also be here.",INPUTTYPELISTMULTI);
+		end
 		SAVEVARIABLE = boolToNumber(isDoujin);
 		if (waitForUserInputs(1)==false) then
 			return;
@@ -215,12 +231,27 @@ function MyLegGuy_Download()
 	elseif (isDoujin==true) then
 		GetSeriesList("https://dynasty-scans.com/doujins");
 		userInputQueue("Series","The manga this doujin is based on. Selecting this option will reset your selected doujin.",INPUTTYPELIST);
-		userInputQueue("Doujin","The specific doujin of the manga.",INPUTTYPELISTMULTI);
+		if (isAsIGo==true) then
+			userInputQueue("Doujin","The specific doujin of the manga.",INPUTTYPELIST);
+		else
+			userInputQueue("Doujin","The specific doujin of the manga.",INPUTTYPELISTMULTI);
+		end
 		SAVEVARIABLE = boolToNumber(isDoujin);
 		if (waitForUserInputs(2)==false) then
 			return;
 		end
 	end
+	if (isAsIGo==true) then
+		local _cachedUserInput = userInput02;
+		userInput02 = {};
+		userInput02[1] = _cachedUserInput;
+		local tempSeriesFolder = fixPath(getMangaFolder(true) .. string.match(seriesListUrl[userInput01],".*/(.*)"));
+		_asIgoFolder = fixPath(tempSeriesFolder .. "/" .. string.match(chapterListUrl[userInput02[1]],".*/(.*)") .. "/");
+	end
+end
+
+function MyLegGuy_Download()
+
 	-- Make folder for the manga's series
 	-- Fancy string matching will get the manga name from /series/yuyushiki
 	local tempSeriesFolder = fixPath(getMangaFolder(true) .. string.match(seriesListUrl[userInput01],".*/(.*)"));
@@ -230,6 +261,9 @@ function MyLegGuy_Download()
 	if (isDoujin==false) then
 		DownloadCover(tempSeriesFolder, seriesListUrl[userInput01]);
 	end
+
+	
+
 	for i=1,#userInput02 do
 		local tempMangaNameUrlSuffix = chapterListUrl[userInput02[i]];
 		-- Chapter specific folder

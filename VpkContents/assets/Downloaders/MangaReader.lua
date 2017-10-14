@@ -19,7 +19,15 @@ function onOptionsLoad()
 		end
 	end
 	getChapterList(seriesListUrl[userInput01])
-	setUserInput(2,0);
+	if (isAsIGo==true) then
+		if (userInput02~="(non-saveable type)") then
+			setUserInput(2,tonumber(userInput02)-1);
+		else
+			setUserInput(2,0);
+		end
+	else
+		setUserInput(2,0);
+	end
 end
 
 function getSeriesList()
@@ -155,6 +163,7 @@ function downloadPage(_mangaName,_mangaChapter,_mangaPageNumber,_saveLocation)
 		showStatus(extraStatusPrefix .. "Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
 	end
 	downloadFile(("http://" .. _subdomain .. ".mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaName .. "-" .. _fileNumber .. ".jpg"),(_saveLocation .. string.format("%03d",_mangaPageNumber) .. ".jpg"));
+	incrementTotalDownloadedFiles(1);
 	requireNewDirectorySearch();
 end
 
@@ -187,6 +196,9 @@ function downloadDoTheThing()
 	for i=1,currentDownloadTotalPages do
 		downloadPage(currentDownloadName,currentDownloadChapterNumber,i,currentDownloadSaveLocation)
 	end
+	if (isAsIGo==true) then
+		setMangaDoneDownloadingStatus(true);
+	end
 end
 
 function initializeDownloadMenu()
@@ -196,14 +208,12 @@ function initializeDownloadMenu()
 	currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
 end
 function InitList01(isFirstTime)
+	setUserInput(2,1);
 	if (isFirstTime>=1) then
 		return seriesListFriendly;
 	end
 	return nil;
 end
-
-
-
 function InitList02(isFirstTime)
 	if (isFirstTime>=1) then
 		return chapterListFriendly
@@ -219,6 +229,7 @@ function EndList01()
 end
 
 function getChapterList(seriesname)
+	print("happy CAll!")
 	showStatus("Getting chapter list...")
 	chapterListUrl = {};
 	chapterListFriendly = {};
@@ -264,14 +275,13 @@ function MyLegGuy_Download()
 		_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
 		_chapterNumberToDownload = tonumber(userInput02[i]);
 		_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
-		initializeDownloadMenu()
+		--initializeDownloadMenu()
 		currentDownloadName = _mangaNameToDownload
 		currentDownloadChapterNumber = _chapterNumberToDownload
 		currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
 		downloadDoTheThing()
 	end
 end
-
 function MyLegGuy_Prompt()
 	ResetUserChoices();
 	getSeriesList();
@@ -284,22 +294,14 @@ function MyLegGuy_Prompt()
 	if (waitForUserInputs(1)==false) then
 		return;
 	end
-	--local _mangaNameToDownload = "";
-	--local _chapterNumberToDownload=0;
-	--userInputQueue("Name","Input the name of the manga from URL.\nFor example, \"naruto\" from http://www.mangareader.net/naruto/19\nFor example, \"naruto\" from http://www.mangareader.net/naruto",INPUTTYPESTRING)
-	--userInputQueue("Chapter","(int) Self explanatory",INPUTTYPENUMBER)
-	--if (waitForUserInputs(1)==false) then
-	--	return;
-	--end
-	-- As I go mode
 	if (isAsIGo==true) then
-		_mangaNameToDownload = seriesListUrl[userInput01];
-		_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
-		_chapterNumberToDownload = tonumber(userInput02);
-		_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
-		initializeDownloadMenu()
-		currentDownloadName = _mangaNameToDownload
-		currentDownloadChapterNumber = _chapterNumberToDownload
-		_asIgoFolder=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
+		_asIgoFolder="";
+		-- I have no idea why, but calling the normal function here crashes.
+		_asIgoFolder = rawGetMangaFolder();
+		_asIgoFolder = _asIgoFolder .. string.match(seriesListUrl[userInput01],".*/(.*)")
+		_asIgoFolder = _asIgoFolder .. "/";
+		_asIgoFolder = _asIgoFolder .. "chapter-";
+		_asIgoFolder = _asIgoFolder .. string.format("%03d",tonumber(userInput02));
+		_asIgoFolder = _asIgoFolder .. "/";
 	end
 end

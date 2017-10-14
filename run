@@ -1,0 +1,5 @@
+#!/bin/bash
+# for linux run
+cd bin
+./a.exe
+cd ..
