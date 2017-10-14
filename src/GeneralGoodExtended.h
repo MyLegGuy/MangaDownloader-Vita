@@ -114,6 +114,8 @@
 		char lastPad[21]={0};
 	#endif
 	
+	signed int leftStickX;
+	signed int leftStickY;
 
 	//////////////////////////////////////////////////////////
 	// Need dis

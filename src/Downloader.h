@@ -28,8 +28,6 @@
 	#define COLORMAYBE 255,255,0
 	// For lists and number input, how much you move when pressing left or right
 	#define LISTLEFTRIGHTJUMPOFFSET 10
-	// Max number of downloader scripts
-	#define MAXFILES 20
 	
 	#define DOWNLOAD_NONE 0
 	#define DOWNLOAD_CURL 1
@@ -55,7 +53,6 @@
 	// main.h
 		void WriteToDebugFile(const char* stuff);
 		void WriteIntToDebugFile(int a);
-		char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
 	#include "Download.h"
 	/*============================================================================*/
 	lua_State* L;
@@ -420,102 +417,6 @@
 		}
 		return len;
 	}
-	#define TEXTBOXY 0
-	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
-		ControlsEnd();
-		// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
-		char message[strlen(_tempMsg)+1+strlen("\n(X for YES, O for NO)")];
-		strcpy(message,_tempMsg);
-		if (_isQuestion==1){
-			strcat(message,"\n(X for YES, O for NO)");
-		}
-		int totalMessageLength = strlen(message);
-		int i, j;
-		signed short _numberOfLines=1;
-		// This will loop through the entire message, looking for where I need to add new lines. When it finds a spot that
-		// needs a new line, that spot in the message will become 0. So, when looking for the place to 
-		int lastNewlinePosition=-1; // If this doesn't start at -1, the first character will be cut off
-		for (i = 0; i < totalMessageLength; i++){
-			if (message[i]==32){ // Only check when we meet a space. 32 is a space in ASCII
-				message[i]='\0';
-				if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
-					char _didWork=0;
-					for (j=i-1;j>lastNewlinePosition+1;j--){
-						//printf("J:%d\n",j);
-						if (message[j]==32){
-							message[j]='\0';
-							_didWork=1;
-							message[i]=32;
-							lastNewlinePosition=j;
-							_numberOfLines++;
-							break;
-						}
-					}
-					if (_didWork==0){
-						message[i]='\0';
-						lastNewlinePosition=i+1;
-						_numberOfLines++;
-					}
-				}else{
-					message[i]=32;
-				}
-			}
-		}
-		// This code will make a new line if there needs to be one because of the last word
-		if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
-			for (j=totalMessageLength-1;j>lastNewlinePosition+1;j--){
-				if (message[j]==32){
-					message[j]='\0';
-					_numberOfLines++;
-					break;
-				}
-			}
-		}
-		char currentlyVisibleLines=screenHeight/currentTextHeight;
-		// This variable is the location of the start of the first VISIBLE line
-		// This will change if the text box has multiple screens because the text is too long
-		int offsetStrlen=0;
-		//  textboxNewCharSpeed
-		ControlsEnd();
-		_numberOfLines-=currentlyVisibleLines;
-		do{
-			FpsCapStart();
-			ControlsStart();
-			int _lastStrlen=0;
-			if (WasJustPressed(SCE_CTRL_CROSS)){
-				if (_numberOfLines<=0){
-					if (_isQuestion==1){
-						ControlsEnd();
-						return 1;
-					}
-					break;
-				}
-				offsetStrlen += strlen(&message[offsetStrlen])+1;
-				_numberOfLines--;
-			}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
-				if (_isQuestion==1){
-					ControlsEnd();
-					return 0;
-				}
-			}
-			ControlsEnd();
-			StartDrawing();
-			// We need this variable so we know the offset in the message for the text that is for the next line
-			_lastStrlen=0;
-			for (i=0;i<currentlyVisibleLines;i++){
-				GoodDrawTextColored(5,TEXTBOXY+TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
-				// This offset will have the first letter for the next line
-				_lastStrlen = strlen(&message[_lastStrlen+offsetStrlen])+1+_lastStrlen;
-				if (_lastStrlen>=totalMessageLength){
-					break;
-				}
-			}
-			EndDrawing();
-			FpsCapWait();
-		}while(_waitForAButton==1);
-		ControlsEnd();
-		return 0;
-	}
 	void freeQueue(int _maxQueue){
 		int i;
 		for (i=0;i<_maxQueue;i++){
@@ -598,24 +499,66 @@
 		}
 		return _lengthOfTable;
 	}
-	void doScript(char* luaFileToUse){
+	void* startDownload(void* _mandatoryArg){
+		if (lua_getglobal(L,"MyLegGuy_Download")==0){
+			popupMessage("Could not find MyLegGuy_Download function.",1,0);
+			lua_pop(L,1);
+			return NULL;
+		}else{
+			lua_call(L,0,0);
+		}
+		return NULL;
+	}
+	#include <unistd.h>
+	void doScript(char* luaFileToUse, char _asIgo){
 		resetScriptData();
 		currentScriptName=luaFileToUse;
 		// We do the cleanup for you!
 		STARTTRACKINGGLOBALS();
+		
+		if (_asIgo==1){
+			lua_pushboolean(L,1);
+		}else{
+			lua_pushboolean(L,0);
+		}
+		lua_setglobal(L,"isAsIGo");
+
+
 		char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
 		strcpy(luaFilenameComplete,downloadersLocation);
 		strcat(luaFilenameComplete,luaFileToUse);
 		if (luaL_dofile(L,luaFilenameComplete)!=0){
 			popupMessage("Failed to run Lua file.",0,0);
 		}
-		if (lua_getglobal(L,"MyLegGuy_Download")==0){
-			popupMessage("Could not find MyLegGuy_Download function.",1,0);
+		if (lua_getglobal(L,"MyLegGuy_Prompt")==0){
+			popupMessage("Could not find MyLegGuy_Prompt function.",1,0);
 			lua_pop(L,1);
 			return;
 		}else{
 			lua_call(L,0,0);
 		}
+
+		if (_asIgo==0){
+			startDownload(NULL);
+		}else{
+			if (lua_getglobal(L,"_asIgoFolder")==0){
+				popupMessage("Could not find _asIgoFolder variable.",1,0);
+			}
+			const char* _tempFoldername = lua_tostring(L,-1);
+			currentDownloadReaderDirectory = malloc(strlen(_tempFoldername)+1);
+			strcpy(currentDownloadReaderDirectory,_tempFoldername);
+			lua_pop(L,1);
+
+			pthread_t _myThreadThing;
+			pthread_create(&(_myThreadThing), NULL, &startDownload, NULL);
+			
+			popupMessage("Waiting for first page...\nThe only acceptable way to wait is coldly.",0,0);
+			while (needUpdateFileListing==-1){
+				sceKernelDelayThread(500000);
+			}
+			photoViewer();
+		}
+
 		// Clean the leftovers
 		ENDTRACKINGGLOBALS();
 	}
@@ -1080,6 +1023,10 @@
 		disableSSL();
 		return 0;
 	}
+	int L_requireNewDirectorySearch(lua_State* passedState){
+		needUpdateFileListing=1;
+		return 0;
+	}
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
 		LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1100,9 +1047,13 @@
 		LUAREGISTER(L_assignListData,"assignListData");
 		LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
 		LUAREGISTER(L_disableSSL,"disableSSL");
+		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 	}
 	/*============================================================================*/
 	void initDownloadBroad(){
+		L = luaL_newstate();
+		luaL_openlibs(L);
+		MakeLuaUseful();
 		initDownload();
 		// Construct fixed paths
 		FixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);

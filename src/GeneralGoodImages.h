@@ -1,5 +1,5 @@
-#ifndef GENERALGOODGRAPHICSHEADER
-#define GENERALGOODGRAPHICSHEADER
+#ifndef GENERALGOODIMAGESHEADER
+#define GENERALGOODIMAGESHEADER
 	// Renderer stuff
 	#if RENDERER == REND_SDL
 		#define CrossTexture SDL_Texture
@@ -36,14 +36,13 @@
 	}
 	CrossTexture* LoadJPG(char* path){
 		#if RENDERER==REND_VITA2D
-			return vita2d_load_JPG_file(path);
+			return vita2d_load_JPEG_file(path);
 		#elif RENDERER==REND_SDL
 			return LoadPNG(path);
 		#elif RENDERER==REND_SF2D
 			return sfil_load_PNG_file(path,SF2D_PLACE_RAM);
 		#endif
 	}
-
 	void FreeTexture(CrossTexture* passedTexture){
 		#if RENDERER == REND_VITA2D
 			vita2d_wait_rendering_done();

@@ -315,7 +315,6 @@
 
 	// Checks if the byte is the one for a newline
 	// If it's 0D, it seeks past the 0A that it assumes is next and returns 1
-	// TODO - Add support for \r only new line. It's pre OSX new line
 	signed char isNewLine(CROSSFILE* fp, unsigned char _temp){
 		if (_temp==0x0D){
 			//fseek(fp,1,SEEK_CUR);

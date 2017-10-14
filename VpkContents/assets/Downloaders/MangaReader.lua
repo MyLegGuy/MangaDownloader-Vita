@@ -118,7 +118,9 @@ end
 
 
 function downloadFindNumberOfPages()
-	showStatus(extraStatusPrefix .. "Getting number of pages...")
+	if (isAsIGo==false) then
+		showStatus(extraStatusPrefix .. "Getting number of pages...")
+	end
 	_mangaPageSample = downloadString("http://www.mangareader.net/" .. currentDownloadName .. "/" .. tostring(currentDownloadChapterNumber) .. "/1")
 	if (downloadFailed) then
 		return false;
@@ -149,8 +151,11 @@ function downloadPage(_mangaName,_mangaChapter,_mangaPageNumber,_saveLocation)
 	local _subdomain;
 	local _fileNumber;
 	_fileNumber, _subdomain = downloadGetUrlData(_mangaName,_mangaChapter,_mangaPageNumber);
-	showStatus(extraStatusPrefix .. "Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
+	if (isAsIGo==false) then
+		showStatus(extraStatusPrefix .. "Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
+	end
 	downloadFile(("http://" .. _subdomain .. ".mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaName .. "-" .. _fileNumber .. ".jpg"),(_saveLocation .. string.format("%03d",_mangaPageNumber) .. ".jpg"));
+	requireNewDirectorySearch();
 end
 
 function makeFolders()
@@ -247,21 +252,11 @@ function getChapterList(seriesname)
 end
 
 function MyLegGuy_Download()
-	ResetUserChoices();
-	getSeriesList();
-	userInputQueue("Series","Choose the manga series.",INPUTTYPELIST);
-	userInputQueue("Chapter","(int) Self explanatory",INPUTTYPELISTMULTI)
-	if (waitForUserInputs(1)==false) then
-		return;
+	if (isAsIGo==true) then
+		local _cachedInput = userInput02;
+		userInput02 = {};
+		userInput02[1] = _cachedInput;
 	end
-	--local _mangaNameToDownload = "";
-	--local _chapterNumberToDownload=0;
-	--userInputQueue("Name","Input the name of the manga from URL.\nFor example, \"naruto\" from http://www.mangareader.net/naruto/19\nFor example, \"naruto\" from http://www.mangareader.net/naruto",INPUTTYPESTRING)
-	--userInputQueue("Chapter","(int) Self explanatory",INPUTTYPENUMBER)
-	--if (waitForUserInputs(1)==false) then
-	--	return;
-	--end
-
 	for i=1,#userInput02 do
 		extraStatusPrefix = ("Chapter " .. i .. "/" .. tostring(#userInput02) .. "\n" .. "\"" .. chapterListUrl[userInput02[i]] .. "\"" .. "\n");
 		_mangaNameToDownload = seriesListUrl[userInput01];
@@ -275,6 +270,36 @@ function MyLegGuy_Download()
 		currentDownloadSaveLocation=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
 		downloadDoTheThing()
 	end
+end
 
-	
+function MyLegGuy_Prompt()
+	ResetUserChoices();
+	getSeriesList();
+	userInputQueue("Series","Choose the manga series.",INPUTTYPELIST);
+	if (isAsIGo==true) then
+		userInputQueue("Chapter","(int) Self explanatory",INPUTTYPELIST)
+	else
+		userInputQueue("Chapter","(int) Self explanatory",INPUTTYPELISTMULTI)
+	end
+	if (waitForUserInputs(1)==false) then
+		return;
+	end
+	--local _mangaNameToDownload = "";
+	--local _chapterNumberToDownload=0;
+	--userInputQueue("Name","Input the name of the manga from URL.\nFor example, \"naruto\" from http://www.mangareader.net/naruto/19\nFor example, \"naruto\" from http://www.mangareader.net/naruto",INPUTTYPESTRING)
+	--userInputQueue("Chapter","(int) Self explanatory",INPUTTYPENUMBER)
+	--if (waitForUserInputs(1)==false) then
+	--	return;
+	--end
+	-- As I go mode
+	if (isAsIGo==true) then
+		_mangaNameToDownload = seriesListUrl[userInput01];
+		_mangaNameToDownload = string.sub(_mangaNameToDownload,2);
+		_chapterNumberToDownload = tonumber(userInput02);
+		_chapterNumberToDownload = math.floor(_chapterNumberToDownload);
+		initializeDownloadMenu()
+		currentDownloadName = _mangaNameToDownload
+		currentDownloadChapterNumber = _chapterNumberToDownload
+		_asIgoFolder=(getMangaFolder() .. currentDownloadName .. "/chapter-" .. string.format("%03d",currentDownloadChapterNumber) .. "/");
+	end
 end
