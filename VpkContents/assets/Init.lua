@@ -20,6 +20,33 @@ userInput08=nil;
 userInput09=nil;
 userInput10=nil;
 
+function makeFolderFriendly(str)
+	-- Remove characters you can't have in folder names
+	str = string.gsub(str,"~"," ");
+	str = string.gsub(str,"#"," ");
+	str = string.gsub(str,"%%"," ");
+	str = string.gsub(str,"&"," ");
+	str = string.gsub(str,"%*"," ");
+	str = string.gsub(str,"{"," ");
+	str = string.gsub(str,"}"," ");
+	str = string.gsub(str,"\\"," ");
+	str = string.gsub(str,":"," ");
+	str = string.gsub(str,"<"," ");
+	str = string.gsub(str,">"," ");
+	str = string.gsub(str,"%?"," ");
+	str = string.gsub(str,"/"," ");
+	str = string.gsub(str,"%+"," ");
+	str = string.gsub(str,"|"," ");
+	str = string.gsub(str,"\""," ");
+	return str;
+end
+
+function goodShowStatus(str)
+	if (isAsIGo==false) then
+		showStatus(str)
+	end
+end
+
 function fixHtmlStupidity(str)
   str = string.gsub( str, '&lt;', '<' )
   str = string.gsub( str, '&gt;', '>' )

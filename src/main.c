@@ -10,6 +10,8 @@
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 200
 
+#define TEMPDEBUGMODE 1
+
 #include "GeneralGoodConfig.h"
 #include "GeneralGoodExtended.h"
 #include "GeneralGood.h"
@@ -173,12 +175,15 @@ void init(){
 int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();
-	char* _noobList[2];
-	_noobList[0] = "Download and wait";
-	_noobList[1] = "Download as I go";
-	doScript(chooseScript(),showList(_noobList, 2, 0, NULL)-1);
-
-	//initDownloadBroad();
-	//doScript(chooseScript());
+	#if TEMPDEBUGMODE == 0
+		char* _noobList[2];
+		_noobList[0] = "Download and wait";
+		_noobList[1] = "Download as I go";
+		char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
+	#else
+		printf("Is temp debug mode.\n");
+		char _isAsIGo=0;
+	#endif
+	doScript(chooseScript(),_isAsIGo);
 	return 0;
 }

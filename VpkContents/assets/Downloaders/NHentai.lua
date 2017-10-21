@@ -1,0 +1,247 @@
+-- Started on 10/19/17
+-- Very basic gallery downloading by ID made by 8:50 PM 10/19/17
+-- Searching made on 10/20/17 by 11:59 PM
+
+-- TODO - As I go support
+
+SCRIPTVERSION=1;
+SAVEVARIABLE=0;
+
+nhentaiMangaRootWithEndSlash = getMangaFolder(true) .. "nhentai/"
+-- MODE_SEARCH variables
+currentParsedSearchResults = {};
+
+-- TODO - Use these. Allow the user to search or enter an ID
+MODE_ID = 1;
+MODE_SEARCH = 2;
+userChosenMode=0;
+
+function onOptionsLoad()
+	-- TODO - Options loading?
+	--userLoad01
+	--setUserInput(1,i);
+end
+
+function convertFileExtention(_abreviation)
+	if (_abreviation=="j") then
+		return "jpg";
+	elseif (_abreviation=="p") then
+		return "png";
+	else
+		print("Unknown file extention!");
+		print(_abreviation)
+		print("Just printed.")
+		return "jpg";
+	end
+end
+
+function getGalleryById(_passedFriendlyId)
+	print("https://nhentai.net/api/gallery/" .. _passedFriendlyId)
+	goodShowStatus("Getting gallery...")
+	local _downloadedGalleryJSON = downloadString("https://nhentai.net/api/gallery/" .. _passedFriendlyId);
+	goodShowStatus("Checking for connection timeout...")
+	if (string.find(_downloadedGalleryJSON,"Connection timed out",0,true)~=nil) then
+		popupMessage("Connection timed out.");
+		return false;
+	end
+	return _downloadedGalleryJSON;
+end
+-- Parses gallery nearest to supplied index
+-- Returns table
+function parseGalleryString(_downloadedGalleryJSON, _startIndex)
+	local _parsedGallery = {};
+	_parsedGallery.pagesFormat = {};
+	_parsedGallery.coverFormat="";
+	_parsedGallery.num_pages=0;
+	_parsedGallery.media_id="0";
+
+	local _firstFind=0;
+	local _secondFind=0;
+
+	-- First, look for the gallery media id
+	_firstFind = string.find(_downloadedGalleryJSON,"media_id",_startIndex,true);
+	-- 11 chars after the start of media_id is the start of the number
+	_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
+	-- Found media_id
+	_parsedGallery.media_id = string.sub(_downloadedGalleryJSON,_firstFind+11,_secondFind-1);
+
+	-- Find the pretty name
+	-- "pretty":"Festa, Festa, Festa!!! DereMas Soushuuhen"
+	_firstFind = string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true);
+	_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
+	_parsedGallery.prettyName = fixUtf8InString(string.sub(_downloadedGalleryJSON,_firstFind+10,_secondFind-1));
+
+	-- Find number of pages
+	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
+	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,"}",_firstFind+11,true)-1));
+	
+	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
+	_firstFind = string.find(_downloadedGalleryJSON,"\"images\"",_secondFind,true);
+	
+	-- Find the file format of the cover
+	_firstFind = string.find(_downloadedGalleryJSON,"\"t\"",_firstFind,true);
+	_parsedGallery.coverFormat = string.sub(_downloadedGalleryJSON,_firstFind+5,_firstFind+5);
+
+	-- Find all file extentions
+	for i=1,_parsedGallery.num_pages do
+		_firstFind = string.find(_downloadedGalleryJSON,"\"t\"",_firstFind+1,true);
+		_parsedGallery.pagesFormat[i] = string.sub(_downloadedGalleryJSON,_firstFind+5,_firstFind+5);
+	end
+	return _parsedGallery;
+end
+
+function parseSearchResults(_searchResultJSON)
+	--local _searchResultJSON = downloadString("https://nhentai.net/api/galleries/search?query=naruto&page=1");
+	local _lastFoundUploadDateIndex=0;
+
+	local _totalParsedResults = {};
+	local i=1;
+	while true do
+		local _tempFound = string.find(_searchResultJSON,"upload_date",_lastFoundUploadDateIndex+1,true);
+		if (_tempFound==nil) then
+			break;
+		end
+		goodShowStatus("Parsing result " .. i)
+		table.insert(_totalParsedResults,parseGalleryString(_searchResultJSON,_lastFoundUploadDateIndex));
+		i=i+1;
+		_lastFoundUploadDateIndex = _tempFound;
+	end
+	-- If we're here, that means that no more mangas were found.
+	-- _lastFoundUploadDateIndex contains the start of the last found manga.
+	-- This will find the number of pages in the last manga
+	_lastFoundUploadDateIndex = string.find(_searchResultJSON,"num_pages",_lastFoundUploadDateIndex,true);
+	-- Because we're sure the last result was the last manga, we can be sure that the next num_pages is the number of pages in the search.
+	_lastFoundUploadDateIndex = string.find(_searchResultJSON,"num_pages",_lastFoundUploadDateIndex+1,true);
+	-- If this is null, then there were no search results. The num_pages that was found before this one was the one reporting that there are 0 search results.
+	if (_lastFoundUploadDateIndex==nil) then
+		_totalParsedResults.num_pages = 0;
+		return _totalParsedResults;
+	end
+	--],"num_pages":1,"per_page":25}
+	_totalParsedResults.num_pages = tonumber(string.sub(_searchResultJSON,_lastFoundUploadDateIndex+11,string.find(_searchResultJSON,",",_lastFoundUploadDateIndex+11,true)-1));
+	return _totalParsedResults;
+end
+
+-- Converts all \uxxxx stuff it finds
+function fixUtf8InString(str)
+	local _lastFoundUtf8Offset = 0;
+	while (true) do
+		_lastFoundUtf8Offset = string.find(str,"\\u",0,true);
+		if (_lastFoundUtf8Offset==nil) then
+			break;
+		end
+		str = string.sub(str,1,_lastFoundUtf8Offset-1) .. utf8.char(tonumber(string.sub(str,_lastFoundUtf8Offset+2,_lastFoundUtf8Offset+5),16)) .. string.sub(str,_lastFoundUtf8Offset+6);
+	end
+	return str;
+end
+
+_currentSearchParsedPage=-1;
+_list02UserInput01Cache = "";
+function InitList02(isFirstTime)
+	-- Only need to refresh this if search term is changed.
+	if (userInput01~=_list02UserInput01Cache) then
+		setUserInput(2,1);
+		_list02UserInput01Cache = userInput01;
+		local _returnTable = {};
+		print(currentParsedSearchResults.num_pages)
+		for i=1,currentParsedSearchResults.num_pages do
+			table.insert(_returnTable,tostring(i));
+		end
+		return _returnTable;
+	end
+	return nil;
+end
+
+function EndInput01()
+	updateSearchWithUserInputs();
+	_currentSearchParsedPage=userInput02;
+	setUserInput(2,1);
+	setUserInput(3,1);
+	assignListData(currentQueueCLists,currentQueueCListsLength,1,InitList02(1))
+	assignListData(currentQueueCLists,currentQueueCListsLength,2,InitList03(1))
+end
+
+function EndList02()
+	if (_currentSearchParsedPage~=userInput02) then
+		if (_currentSearchParsedPage~=userInput02) then
+			updateSearchWithUserInputs();
+			_currentSearchParsedPage = userInput02
+			assignListData(currentQueueCLists,currentQueueCListsLength,2,InitList03(1))
+		end
+	end
+end
+
+function updateSearchWithUserInputs()
+	currentParsedSearchResults={};
+	_currentSearchParsedPage = userInput02;
+	local _searchResultJSON = getSearch(userInput01,math.floor(userInput02));
+	currentParsedSearchResults = parseSearchResults(_searchResultJSON);
+end
+
+
+
+_userInput01Cache = "";
+_cacheSearchPage=-1;
+function InitList03(isFirstTime)
+	-- Only need to refresh this if page or search term is changed.
+	if (userInput01~=_userInput01Cache or userInput02 ~= _cacheSearchPage) then
+		_userInput01Cache = userInput01;
+		_cacheSearchPage = userInput02;
+		local _returnTable = {};
+		for i=1,#currentParsedSearchResults do
+			table.insert(_returnTable,(currentParsedSearchResults[i].prettyName));
+		end
+		return _returnTable;
+	end
+	return nil;
+end
+
+function getSearch(_passedSearchTerms, _passedPageNumber)
+	goodShowStatus("Getting search JSON...")
+	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
+	--downloadFile("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=1","./testdownloaded3")
+	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
+end
+
+function doGallery(_parsedGallery)
+	-- Manga specific directory
+	local _fixedFolderName = makeFolderFriendly(_parsedGallery.prettyName);
+	createDirectory(nhentaiMangaRootWithEndSlash .. _fixedFolderName);
+
+	-- Download the cover beforehand
+	goodShowStatus("Downloading cover...");
+	downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),nhentaiMangaRootWithEndSlash .. _fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
+	
+	-- Download the pages
+	for i=1,_parsedGallery.num_pages do
+		local _fileExtention = convertFileExtention(_parsedGallery.pagesFormat[i]);
+		goodShowStatus(_parsedGallery.prettyName .. "\n" .. i .. "/" .. _parsedGallery.num_pages);
+		downloadFile("https://i.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/" .. i .. "." .. _fileExtention,nhentaiMangaRootWithEndSlash .. _fixedFolderName .. "/" .. string.format("%03d",i) .. "." .. _fileExtention);
+	end
+end
+
+function MyLegGuy_Download()
+	print("Download.")
+	createDirectory(nhentaiMangaRootWithEndSlash);
+
+	setUserAgent("Vita-Nathan-Lua-Manga-Downloader/" .. string.format("%02d",getDownloaderVersion()));
+	doGallery(currentParsedSearchResults[userInput03])
+end
+
+function MyLegGuy_Prompt()
+	ResetUserChoices();
+	userInput01="";
+	userInput02=1;
+	userInput03=1;
+
+	userInputQueue("Search","Search term.",INPUTTYPESTRING)
+	userInputQueue("Search result page","There may be multiple pages of results. Choose one here.",INPUTTYPELIST)
+	userInputQueue("Search result","After searching, choose a result.",INPUTTYPELIST)
+	if (waitForUserInputs(1)==false) then
+		return;
+	end
+	if (#currentParsedSearchResults==0 or currentParsedSearchResults[userInput03]==nil) then
+		print("Invalid inputs.")
+		return;
+	end
+end

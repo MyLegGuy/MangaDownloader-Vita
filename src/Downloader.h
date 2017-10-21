@@ -461,10 +461,25 @@
 		sprintf(_listFunctionName,"EndList%02d",_listNumber);
 		if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
 			lua_call(passedState, 0, 0);
+		}else{
+			lua_pop(passedState,1);
 		}
-		lua_pop(passedState,1);
 		return 1;
 	}
+
+	// _listNumber should be 1 based
+	char callInputFinish(lua_State* passedState, char _listNumber){
+		char _listFunctionName[11];
+		sprintf(_listFunctionName,"EndInput%02d",_listNumber);
+		if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
+			lua_call(passedState, 0, 0);
+		}else{
+			lua_pop(passedState,1);
+			callListFinish(passedState,_listNumber);
+		}
+		return 1;
+	}
+
 	// Removes one from the stack
 	int assignAfterListInit(lua_State* passedState, char*** _listEntries, int _previousLength, int _tableIndex){
 		// If tables return a number, it means that no table avalible. Free old table
@@ -659,6 +674,10 @@
 	int L_fileExists(lua_State* passedState){
 		lua_pushboolean(passedState,checkFileExist(lua_tostring(passedState,1)));
 		return 1;
+	}
+	int L_setUserAgent(lua_State* passedState){
+		setUserAgent(lua_tostring(passedState,1));
+		return 0;
 	}
 	// Slot, value
 	int L_setUserInput(lua_State* passedState){
@@ -929,10 +948,12 @@
 					}else if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 						*((int*)(userInputResults[_selection])) = inputNumber(*((int*)(userInputResults[_selection])));
 						pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+						callInputFinish(passedState,_selection+1);
 					}else if (inputTypeQueue[_selection]==INPUTTYPESTRING){
 						userInputResults[_selection] = userKeyboardInput(userInputResults[_selection]!=NULL ? userInputResults[_selection] : "",shortNameQueue[_selection],99);
 						if (userInputResults[_selection]!=NULL){
 							pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
+							callInputFinish(passedState,_selection+1);
 						}
 					}
 				}
@@ -1044,6 +1065,7 @@
 		LUAREGISTER(L_assignListData,"assignListData");
 		LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
 		LUAREGISTER(L_disableSSL,"disableSSL");
+		LUAREGISTER(L_setUserAgent,"setUserAgent");
 		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

@@ -77,6 +77,9 @@
 		void disableSSL(){
 			curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 		}
+		void setUserAgent(const char* _agentName){
+			curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, _agentName);
+		}
 		void initDownload(){
 			#if PLATFORM == PLAT_VITA
 				sceSysmoduleLoadModule(SCE_SYSMODULE_NET);

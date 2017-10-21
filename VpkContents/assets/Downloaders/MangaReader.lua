@@ -229,7 +229,6 @@ function EndList01()
 end
 
 function getChapterList(seriesname)
-	print("happy CAll!")
 	showStatus("Getting chapter list...")
 	chapterListUrl = {};
 	chapterListFriendly = {};
