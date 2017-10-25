@@ -41,7 +41,6 @@ void readPad(){
 #include "photoExtended.h"
 
 void photoViewer(CrossTexture* _passedTexture){
-	printf("Fancy viewer.\n");
 	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
 	char* _currentRelativeFilename;

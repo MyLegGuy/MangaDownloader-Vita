@@ -1,6 +1,8 @@
 -- Started on 10/19/17
 -- Very basic gallery downloading by ID made by 8:50 PM 10/19/17
 -- Searching made on 10/20/17 by 11:59 PM
+-- TODO - Make it so user can tell what's in English
+-- TODO - Vita crashes if no search result. I see "Getting search JSON..."
 
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
@@ -13,10 +15,23 @@ MODE_SEARCH = 1;
 MODE_ID = 2;
 userChosenMode=0;
 
-function onOptionsLoad()
-	-- TODO - Options loading?
-	--userLoad01
-	--setUserInput(1,i);
+function storage_onListMoreInfo(_passedListId, _passedListEntry)
+	if ((_passedListId)==3) then
+		_parsedGallery = currentParsedSearchResults[_passedListEntry];
+		goodShowStatus("Getting cover...");
+		--downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),_fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
+		
+		if (convertFileExtention(_parsedGallery.coverFormat)=="jpg") then
+			_tempLoadedCover = loadImageFromUrl("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),FILETYPE_JPG)
+		elseif (convertFileExtention(_parsedGallery.coverFormat)=="png") then
+			_tempLoadedCover = loadImageFromUrl("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),FILETYPE_PNG)
+		else
+			popupMessage("Invalid format. " .. _parsedGallery.coverFormat);
+			return;
+		end
+		photoViewer(_tempLoadedCover)
+		freeTexture(_tempLoadedCover)
+	end
 end
 
 function convertFileExtention(_abreviation)
@@ -251,6 +266,7 @@ function MyLegGuy_Prompt()
 	userChosenMode = userInput01;
 
 	if (userChosenMode == MODE_SEARCH) then
+		onListMoreInfo = storage_onListMoreInfo;
 		EndInput01 = __tempHoldEndInput1;
 		ResetUserChoices();
 		userInput01="";

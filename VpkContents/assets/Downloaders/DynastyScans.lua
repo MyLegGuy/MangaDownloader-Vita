@@ -26,6 +26,20 @@ function onOptionsLoad()
 	GetChapterList(seriesListUrl[userInput01])
 	--end
 end
+
+
+function onListMoreInfo__stuff(_passedListId, _passedListEntry)
+	if ((_passedListId)==1) then
+		if (isDoujin==true) then
+			popupMessage("None avalible.")
+		end
+		showStatus("Getting cover...")
+		_tempLoadedCover = loadImageFromUrl(getCoverUrl(seriesListUrl[_passedListEntry]),FILETYPE_JPG)
+		photoViewer(_tempLoadedCover)
+		freeTexture(_tempLoadedCover)
+	end
+end
+
 --https:--dynasty-scans.com/xxxx
 --Stores the completed xxxx part
 --Should be something like "chapters/new_game_ch32"
@@ -171,16 +185,21 @@ function input2_InitList02(isFirstTime)
 	end
 	return nil;
 end
+
+function getCoverUrl(coverSeriesPartUrl)
+	local _coverHtml = downloadString("https://dynasty-scans.com" .. coverSeriesPartUrl);
+	local lastFound=-1;
+	--<img alt="Yuyushiki_04" class="thumbnail" src="/system/tag_contents_covers/000/002/527/medium/Yuyushiki_04.jpg?1371254739">
+	lastFound = string.find(_coverHtml,"thumbnail",lastFound+1,true);
+	local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
+	lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
+	return ("https://dynasty-scans.com" .. string.sub(_coverHtml,firstQuotationMark+1,lastFound-1));
+end
+
 function DownloadCover(downloadLocation, coverSeriesPartUrl)
 	if (shouldDownloadCovers()==true) then
 		if (fileExists(downloadLocation .. "/cover.jpg")==false) then
-			local _coverHtml = downloadString("https://dynasty-scans.com" .. coverSeriesPartUrl);
-			local lastFound=-1;
-			--<img alt="Yuyushiki_04" class="thumbnail" src="/system/tag_contents_covers/000/002/527/medium/Yuyushiki_04.jpg?1371254739">
-			lastFound = string.find(_coverHtml,"thumbnail",lastFound+1,true);
-			local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
-			lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
-			downloadFile(("https://dynasty-scans.com" .. string.sub(_coverHtml,firstQuotationMark+1,lastFound-1)),(downloadLocation .. "/cover.jpg"))
+			downloadFile(getCoverUrl(coverSeriesPartUrl),(downloadLocation .. "/cover.jpg"))
 		end
 	end
 end
@@ -216,6 +235,7 @@ function MyLegGuy_Prompt()
 	InitList01 = input2_InitList01;
 	InitList02 = input2_InitList02;
 	EndList01 = input2_EndList01;
+	onListMoreInfo = onListMoreInfo__stuff;
 	if (isDoujin==false) then
 		GetSeriesList("https://dynasty-scans.com/series");
 		userInputQueue("Series","The manga name. Selecting this option will reset your selected chapter.",INPUTTYPELIST);
@@ -251,7 +271,6 @@ function MyLegGuy_Prompt()
 end
 
 function MyLegGuy_Download()
-
 	-- Make folder for the manga's series
 	-- Fancy string matching will get the manga name from /series/yuyushiki
 	local tempSeriesFolder = fixPath(getMangaFolder(true) .. string.match(seriesListUrl[userInput01],".*/(.*)"));
@@ -261,9 +280,6 @@ function MyLegGuy_Download()
 	if (isDoujin==false) then
 		DownloadCover(tempSeriesFolder, seriesListUrl[userInput01]);
 	end
-
-	
-
 	for i=1,#userInput02 do
 		local tempMangaNameUrlSuffix = chapterListUrl[userInput02[i]];
 		-- Chapter specific folder

@@ -11,6 +11,26 @@ seriesListFriendly = {};
 chapterListUrl = {};
 chapterListFriendly = {};
 
+function getCoverUrl(_passedName)
+	local _coverHtml = downloadString("http://www.mangareader.net/" .. _passedName);
+	local lastFound=-1;
+	--<div id="mangaimg"><img src="http://s1.mangareader.net/cover/the-gamer/the-gamer-l0.jpg" alt="The Gamer Manga"></div>
+	lastFound = string.find(_coverHtml,"mangaimg",lastFound+1,true);
+	local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
+	lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
+	return (string.sub(_coverHtml,firstQuotationMark+1,lastFound-1));
+end
+
+function storage_onListMoreInfo(_passedListId, _passedListEntry)
+	if (_passedListId~=1) then
+		return
+	end
+	showStatus("Getting cover...")
+	_tempLoadedCover = loadImageFromUrl(getCoverUrl(string.sub(seriesListUrl[_passedListEntry],2)),FILETYPE_JPG)
+	photoViewer(_tempLoadedCover)
+	freeTexture(_tempLoadedCover)
+end
+
 function onOptionsLoad()
 	for i=1,#seriesListFriendly do
 		if (seriesListFriendly[i]==userLoad01) then
@@ -176,13 +196,9 @@ end
 function downloadCover()
 	if (shouldDownloadCovers()==true) then
 		if (fileExists(getMangaFolder() .. currentDownloadName .. "/cover.jpg")==false) then
-			local _coverHtml = downloadString("http://www.mangareader.net/" .. currentDownloadName);
-			local lastFound=-1;
-			--<div id="mangaimg"><img src="http://s1.mangareader.net/cover/the-gamer/the-gamer-l0.jpg" alt="The Gamer Manga"></div>
-			lastFound = string.find(_coverHtml,"mangaimg",lastFound+1,true);
-			local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
-			lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
-			downloadFile((string.sub(_coverHtml,firstQuotationMark+1,lastFound-1)),(getMangaFolder() .. currentDownloadName .. "/cover.jpg"))
+			print(getCoverUrl(currentDownloadName))
+			print(getMangaFolder() .. currentDownloadName .. "/cover.jpg")
+			downloadFile(getCoverUrl(currentDownloadName),(getMangaFolder() .. currentDownloadName .. "/cover.jpg"))
 		end
 	end
 end
@@ -191,8 +207,8 @@ function downloadDoTheThing()
 	if (downloadFindNumberOfPages()==false) then
 		return;
 	end
-	downloadCover();
 	makeFolders()
+	downloadCover();
 	for i=1,currentDownloadTotalPages do
 		downloadPage(currentDownloadName,currentDownloadChapterNumber,i,currentDownloadSaveLocation)
 	end
@@ -282,6 +298,7 @@ function MyLegGuy_Download()
 	end
 end
 function MyLegGuy_Prompt()
+	onListMoreInfo = storage_onListMoreInfo;
 	ResetUserChoices();
 	getSeriesList();
 	userInputQueue("Series","Choose the manga series.",INPUTTYPELIST);
