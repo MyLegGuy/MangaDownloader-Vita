@@ -20,6 +20,18 @@ userInput08=nil;
 userInput09=nil;
 userInput10=nil;
 
+function setDoneDownloading()
+	if (isAsIGo==true) then
+		setMangaDoneDownloadingStatus(true);
+	end
+end
+function sendJustDownloadedNew()
+	if (isAsIGo==true) then
+		incrementTotalDownloadedFiles(1);
+		requireNewDirectorySearch();
+	end
+end
+
 function makeFolderFriendly(str)
 	-- Remove characters you can't have in folder names
 	str = string.gsub(str,"~"," ");

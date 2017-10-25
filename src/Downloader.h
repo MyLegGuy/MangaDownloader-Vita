@@ -469,7 +469,7 @@
 
 	// _listNumber should be 1 based
 	char callInputFinish(lua_State* passedState, char _listNumber){
-		char _listFunctionName[11];
+		char _listFunctionName[12]; // Extra byte is to make the compiler not complain about possible buffer overflow
 		sprintf(_listFunctionName,"EndInput%02d",_listNumber);
 		if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
 			lua_call(passedState, 0, 0);
@@ -550,8 +550,13 @@
 			lua_pop(L,1);
 			return;
 		}else{
-			lua_call(L,0,0);
+			lua_call(L,0,1); // 1 result
 		}
+		// If returned false, exit.
+		if (lua_toboolean(L,-1)==0){
+			return;
+		}
+		lua_pop(L,1);
 
 		if (_asIgo==0){
 			startDownload(NULL);
@@ -722,6 +727,9 @@
 	}
 	// Returns false if user quit, true otherwise
 	int L_waitForUserInputs(lua_State* passedState){
+		ControlsStart();
+		ControlsEnd();
+		
 		numberOfPrompts++;
 		char _specificOptionsNumber=255;
 		char _saveAndLoadEnabled=0;

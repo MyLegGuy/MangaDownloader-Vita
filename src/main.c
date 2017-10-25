@@ -1,3 +1,5 @@
+// TODO - OnListElementMoreInfo
+	// Can be used to display cover and stuff
 #define VERSION 1
 
 #include <stdio.h>
@@ -10,7 +12,7 @@
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 200
 
-#define TEMPDEBUGMODE 1
+#define TEMPDEBUGMODE 0
 
 #include "GeneralGoodConfig.h"
 #include "GeneralGoodExtended.h"
@@ -179,11 +181,18 @@ int main(int argc, char *argv[]){
 		char* _noobList[2];
 		_noobList[0] = "Download and wait";
 		_noobList[1] = "Download as I go";
-		char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
+		signed char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
+		if (_isAsIGo==-1){
+			return 0;
+		}
 	#else
 		printf("Is temp debug mode.\n");
 		char _isAsIGo=0;
 	#endif
-	doScript(chooseScript(),_isAsIGo);
+	char* _chosenScript = chooseScript();
+	if (_chosenScript==NULL){
+		return 0;
+	}
+	doScript(_chosenScript,_isAsIGo);
 	return 0;
 }

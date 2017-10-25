@@ -132,7 +132,7 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	char* _tempPathFixBuffer = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+strlen(currentDownloadReaderDirectory)+1);
 	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
 	strcat(_tempPathFixBuffer,_mangaDirectoryFilenames[_startIndex]);
-	WriteToDebugFile(_tempPathFixBuffer);
+	//WriteToDebugFile(_tempPathFixBuffer);
 	if (strcmp(getFileExtention(_tempPathFixBuffer,3),"jpg")==0){
 		if (*_toStorePage!=NULL){
 			FreeTexture(*_toStorePage);

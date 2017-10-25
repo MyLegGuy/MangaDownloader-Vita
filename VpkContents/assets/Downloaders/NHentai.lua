@@ -2,8 +2,6 @@
 -- Very basic gallery downloading by ID made by 8:50 PM 10/19/17
 -- Searching made on 10/20/17 by 11:59 PM
 
--- TODO - As I go support
-
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
 
@@ -11,9 +9,8 @@ nhentaiMangaRootWithEndSlash = getMangaFolder(true) .. "nhentai/"
 -- MODE_SEARCH variables
 currentParsedSearchResults = {};
 
--- TODO - Use these. Allow the user to search or enter an ID
-MODE_ID = 1;
-MODE_SEARCH = 2;
+MODE_SEARCH = 1;
+MODE_ID = 2;
 userChosenMode=0;
 
 function onOptionsLoad()
@@ -37,9 +34,9 @@ end
 
 function getGalleryById(_passedFriendlyId)
 	print("https://nhentai.net/api/gallery/" .. _passedFriendlyId)
-	goodShowStatus("Getting gallery...")
+	showStatus("Getting gallery...")
 	local _downloadedGalleryJSON = downloadString("https://nhentai.net/api/gallery/" .. _passedFriendlyId);
-	goodShowStatus("Checking for connection timeout...")
+	showStatus("Checking for connection timeout...")
 	if (string.find(_downloadedGalleryJSON,"Connection timed out",0,true)~=nil) then
 		popupMessage("Connection timed out.");
 		return false;
@@ -101,7 +98,7 @@ function parseSearchResults(_searchResultJSON)
 		if (_tempFound==nil) then
 			break;
 		end
-		goodShowStatus("Parsing result " .. i)
+		showStatus("Parsing result " .. i)
 		table.insert(_totalParsedResults,parseGalleryString(_searchResultJSON,_lastFoundUploadDateIndex));
 		i=i+1;
 		_lastFoundUploadDateIndex = _tempFound;
@@ -197,27 +194,33 @@ function InitList03(isFirstTime)
 end
 
 function getSearch(_passedSearchTerms, _passedPageNumber)
-	goodShowStatus("Getting search JSON...")
+	showStatus("Getting search JSON...")
 	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
 	--downloadFile("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=1","./testdownloaded3")
 	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
 end
 
+function getGalleryFullFolder(_parsedGallery)
+	return nhentaiMangaRootWithEndSlash .. makeFolderFriendly(_parsedGallery.prettyName);
+end
+
 function doGallery(_parsedGallery)
 	-- Manga specific directory
-	local _fixedFolderName = makeFolderFriendly(_parsedGallery.prettyName);
-	createDirectory(nhentaiMangaRootWithEndSlash .. _fixedFolderName);
+	local _fixedFolderName = getGalleryFullFolder(_parsedGallery);
+	createDirectory(_fixedFolderName);
 
 	-- Download the cover beforehand
 	goodShowStatus("Downloading cover...");
-	downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),nhentaiMangaRootWithEndSlash .. _fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
+	downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),_fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
 	
 	-- Download the pages
 	for i=1,_parsedGallery.num_pages do
 		local _fileExtention = convertFileExtention(_parsedGallery.pagesFormat[i]);
 		goodShowStatus(_parsedGallery.prettyName .. "\n" .. i .. "/" .. _parsedGallery.num_pages);
-		downloadFile("https://i.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/" .. i .. "." .. _fileExtention,nhentaiMangaRootWithEndSlash .. _fixedFolderName .. "/" .. string.format("%03d",i) .. "." .. _fileExtention);
+		downloadFile("https://i.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/" .. i .. "." .. _fileExtention,_fixedFolderName .. "/" .. string.format("%03d",i) .. "." .. _fileExtention);
+		sendJustDownloadedNew();
 	end
+	setDoneDownloading();
 end
 
 function MyLegGuy_Download()
@@ -228,20 +231,55 @@ function MyLegGuy_Download()
 	doGallery(currentParsedSearchResults[userInput03])
 end
 
-function MyLegGuy_Prompt()
-	ResetUserChoices();
-	userInput01="";
-	userInput02=1;
-	userInput03=1;
+-- Only called for the first prompt because the second prompt has a string for the first input.
+function InitList01()
+	local _returnTable = {};
+	table.insert(_returnTable,"Search for manga.");
+	table.insert(_returnTable,"Download by ID.");
+	return _returnTable;
+end
 
-	userInputQueue("Search","Search term.",INPUTTYPESTRING)
-	userInputQueue("Search result page","There may be multiple pages of results. Choose one here.",INPUTTYPELIST)
-	userInputQueue("Search result","After searching, choose a result.",INPUTTYPELIST)
-	if (waitForUserInputs(1)==false) then
-		return;
+function MyLegGuy_Prompt()
+	__tempHoldEndInput1 = EndInput01;
+	EndInput01=nil;
+
+	ResetUserChoices();
+	userInputQueue("Mode","Will you use an ID, or search?",INPUTTYPELIST);
+	if (waitForUserInputs(false)==false) then
+		return false;
 	end
-	if (#currentParsedSearchResults==0 or currentParsedSearchResults[userInput03]==nil) then
-		print("Invalid inputs.")
-		return;
+	userChosenMode = userInput01;
+
+	if (userChosenMode == MODE_SEARCH) then
+		EndInput01 = __tempHoldEndInput1;
+		ResetUserChoices();
+		userInput01="";
+		userInput02=1;
+		userInput03=1;
+		userInputQueue("Search","Search term.",INPUTTYPESTRING)
+		userInputQueue("Search result page","There may be multiple pages of results. Choose one here.",INPUTTYPELIST)
+		userInputQueue("Search result","After searching, choose a result.",INPUTTYPELIST)
+		if (waitForUserInputs(false)==false) then
+			return false;
+		end
+		if (#currentParsedSearchResults==0 or currentParsedSearchResults[userInput03]==nil) then
+			print("Invalid inputs.")
+			return false;
+		end
+	elseif (userChosenMode == MODE_ID) then
+		ResetUserChoices();
+		userInputQueue("ID","The ID. For example, 212113 from https://nhentai.net/g/212113/",INPUTTYPESTRING)
+		if (waitForUserInputs(false)==false) then
+			return false;
+		end
+		currentParsedSearchResults = {};
+		table.insert(currentParsedSearchResults,parseGalleryString(getGalleryById(userInput01),0));
+		userInput03=1;
 	end
+	if (isAsIGo==true) then
+		_asIgoFolder="";
+		_asIgoFolder = getGalleryFullFolder(currentParsedSearchResults[userInput03]);
+		_asIgoFolder = _asIgoFolder .. "/"
+	end
+	return true;
 end

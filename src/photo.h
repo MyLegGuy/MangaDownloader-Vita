@@ -58,7 +58,6 @@ void photoViewer(){
 		if (WasJustPressed(SCE_CTRL_RIGHT) || WasJustPressed(SCE_CTRL_LEFT)){
 			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,WasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
 			if (_loadResult==LOADNEW_LOADEDNEW){
-				printf("loaded new!\n");
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
 				printf("Done with manga.\n");
 				return;
