@@ -576,7 +576,7 @@
 			while (needUpdateFileListing==-1){
 				sceKernelDelayThread(500000);
 			}
-			photoViewer();
+			photoViewer(NULL);
 		}
 
 		// Clean the leftovers
@@ -1053,6 +1053,36 @@
 		disableSSL();
 		return 0;
 	}
+	// This function's return value can be used with photo viewer.
+	// Args - 
+	// url, filetype
+	// filetype can be png or jpg
+	// Don't use dots
+	int L_loadImageFromUrl(lua_State* passedState){
+		size_t _foundSize;
+		void* _foundBuffer;
+		downloadWebpageData(lua_tostring(passedState,1),(char**)&_foundBuffer,&_foundSize);
+		int _loadFileType = lua_tonumber(passedState,2);
+		CrossTexture* _loadedUrlTexture;
+		if (_loadFileType == FILETYPE_PNG){
+			_loadedUrlTexture = LoadPNGBuffer(_foundBuffer,_foundSize);
+		}else if (_loadFileType == FILETYPE_JPG){
+			_loadedUrlTexture = LoadJPGBuffer(_foundBuffer,_foundSize);
+		}else{
+			popupMessage("Missing texture format!",1,0);
+		}
+		lua_pushlightuserdata(passedState,_loadedUrlTexture);
+		return 1;
+	}
+	int L_photoViewer(lua_State* passedState){
+		photoViewer((CrossTexture*)lua_touserdata(passedState,1));
+		return 0;
+	}
+	int L_freeTexture(lua_State* passedState){
+		FreeTexture((CrossTexture*)lua_touserdata(passedState,1));
+		return 0;
+	}
+
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
 		LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1074,6 +1104,9 @@
 		LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
 		LUAREGISTER(L_disableSSL,"disableSSL");
 		LUAREGISTER(L_setUserAgent,"setUserAgent");
+		LUAREGISTER(L_loadImageFromUrl,"loadImageFromUrl");
+		LUAREGISTER(L_photoViewer,"photoViewer");
+		LUAREGISTER(L_freeTexture,"freeTexture");
 		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

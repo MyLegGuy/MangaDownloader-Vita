@@ -9,6 +9,9 @@ PLAT_WINDOWS = 1;
 PLAT_VITA = 2;
 PLAT_3DS = 3;
 
+FILETYPE_JPG = 1;
+FILETYPE_PNG = 2;
+
 userInput01=nil;
 userInput02=nil;
 userInput03=nil;

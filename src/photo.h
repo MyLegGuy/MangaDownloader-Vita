@@ -40,14 +40,20 @@ void readPad(){
 // My code
 #include "photoExtended.h"
 
-void photoViewer(){
-	printf("View\n");
+void photoViewer(CrossTexture* _passedTexture){
+	printf("Fancy viewer.\n");
+	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
-	char* _currentRelativeFilename=NULL;
-	int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
-	if (_initialLoadResult==LOADNEW_DIDNTLOAD){
-		printf("failed to load.\n");
-		return;
+	char* _currentRelativeFilename;
+	if (_isSingleImageMode==1){
+		tex=_passedTexture;
+	}else{
+		_currentRelativeFilename=NULL;
+		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
+			printf("failed to load.\n");
+			return;
+		}
 	}
 	while (1){
 		FpsCapStart();
@@ -56,6 +62,10 @@ void photoViewer(){
 		EndDrawing();
 		ControlsStart();
 		if (WasJustPressed(SCE_CTRL_RIGHT) || WasJustPressed(SCE_CTRL_LEFT)){
+			if (_isSingleImageMode==1){
+				FreeTexture(tex);
+				break;
+			}
 			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,WasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
@@ -275,20 +285,23 @@ void readPad() {
 	}
 }
 
-// type is type of file, JPEG, for example.
-// base_pos, int *rel_pos used for position in folder or something.
-void photoViewer() {
+void photoViewer(CrossTexture* _singleTexture) {
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
+	char _isSingleImageMode = _singleTexture!=NULL;
 	char *buffer = malloc(BIG_BUFFER_SIZE);
 	if (!buffer)
 		return;
 
 	vita2d_texture* tex=NULL;
-	char* _currentRelativeFilename=NULL;
-	int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
-	if (_initialLoadResult==LOADNEW_DIDNTLOAD){
-		return;
+	if (_isSingleImageMode==1){
+		tex=_singleTexture;
+	}else{
+		char* _currentRelativeFilename=NULL;
+		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
+			return;
+		}	
 	}
 	if (!tex) {
 		free(buffer);
@@ -330,6 +343,9 @@ void photoViewer() {
 		// Previous/next image.
 		//if ((horizontal==0 && ((pressed_buttons & SCE_CTRL_LEFT) || (pressed_buttons & SCE_CTRL_RIGHT))) || (horizontal==0 && (pressed_buttons & SCE_CTRL_UP || pressed_buttons & SCE_CTRL_DOWN))) {
 		if ((horizontal==1 && ((pressed_buttons & SCE_CTRL_RIGHT) || (pressed_buttons & SCE_CTRL_LEFT))) || (horizontal==0 && ((pressed_buttons & SCE_CTRL_DOWN) || (pressed_buttons & SCE_CTRL_UP)))){
+			if (_isSingleImageMode==1){
+				break;
+			}
 			signed char _isNextPage = (((horizontal==1 && (pressed_buttons & SCE_CTRL_RIGHT)) || (horizontal==0 && (pressed_buttons & SCE_CTRL_DOWN))));
 			if (_isNextPage==0){
 				_isNextPage=-1;

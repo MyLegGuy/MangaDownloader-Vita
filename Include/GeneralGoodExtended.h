@@ -1,18 +1,6 @@
 #ifndef GENERALGOODEXTENDED_H
 #define GENERALGOODEXTENDED_H
 
-#if PLATFORM == PLAT_VITA
-	#include <psp2/ctrl.h>
-	#include <psp2/kernel/processmgr.h>
-	#include <psp2/rtc.h>
-	#include <psp2/types.h>
-	#include <psp2/display.h>
-	#include <psp2/touch.h>
-	#include <psp2/io/fcntl.h>
-	#include <psp2/io/dirent.h>
-	#include <psp2/power.h>
-#endif
-
 #if PLATFORM != PLAT_VITA
 	enum SceCtrlPadButtons {
 		SCE_CTRL_SELECT      = 0,	//!< Select button.

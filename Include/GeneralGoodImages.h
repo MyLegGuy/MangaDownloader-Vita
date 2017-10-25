@@ -6,10 +6,8 @@
 	#include <SDL2/SDL.h>
 	#include <SDL2/SDL_image.h>	
 #endif
-
 #if RENDERER == REND_VITA2D
 	#include <vita2d.h>
-	#define CrossTexture vita2d_texture
 #endif
 
 void DrawTexturePartScaleRotate(CrossTexture* texture, int x, int y, float tex_x, float tex_y, float tex_w, float tex_h, float x_scale, float y_scale, float rad);
@@ -24,5 +22,7 @@ int GetTextureHeight(CrossTexture* passedTexture);
 int GetTextureWidth(CrossTexture* passedTexture);
 CrossTexture* LoadJPG(char* path);
 CrossTexture* LoadPNG(char* path);
- 
+CrossTexture* LoadPNGBuffer(void* _passedBuffer, int _passedBufferSize);
+CrossTexture* LoadJPGBuffer(void* _passedBuffer, int _passedBufferSize);
+
 #endif /* GENERALGOODGRAPHICS_H */

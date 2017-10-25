@@ -1,5 +1,7 @@
 // TODO - OnListElementMoreInfo
 	// Can be used to display cover and stuff
+	// Combine with my new commands.
+// TODO - Include everything that my 3ds one had.
 #define VERSION 1
 
 #include <stdio.h>
@@ -13,6 +15,9 @@
 #define MAXFILES 200
 
 #define TEMPDEBUGMODE 0
+
+#define FILETYPE_JPG 1
+#define FILETYPE_PNG 2
 
 #include "GeneralGoodConfig.h"
 #include "GeneralGoodExtended.h"
