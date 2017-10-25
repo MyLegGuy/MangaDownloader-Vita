@@ -73,6 +73,10 @@ void photoViewer(CrossTexture* _passedTexture){
 				return;
 			}
 		}
+		if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			FreeTexture(tex);
+			break;
+		}
 		ControlsEnd();
 		FpsCapWait();
 	}
@@ -300,6 +304,7 @@ void photoViewer(CrossTexture* _singleTexture) {
 		char* _currentRelativeFilename=NULL;
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
+			free(buffer);
 			return;
 		}	
 	}
@@ -354,6 +359,7 @@ void photoViewer(CrossTexture* _singleTexture) {
 			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
+				free(buffer);
 				return;
 			}
 		}

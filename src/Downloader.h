@@ -40,7 +40,7 @@
 	#define SCROLLSTATUS_NEEDCHECK 3
 	#define SCROLLSTATUS_ENDWAITPLUSONE 4
 	#define SCROLLSTATUS_ENDWAIT 5
-	
+
 	#include <stdio.h>
 	#include <stdlib.h>
 	#include <unistd.h>
@@ -111,9 +111,19 @@
 	void gooditoa(int _num, char* _buffer, int _uselessBase){
 		sprintf(_buffer, "%d", _num);
 	}
+	void callListMoreInfo(lua_State* passedState, char _listNumber, int _listEntry){
+		if (lua_getglobal(passedState,"onListMoreInfo")!=LUA_TFUNCTION){
+			lua_pop(L,1);
+			return;
+		}
+		lua_pushnumber(passedState,_listNumber);
+		lua_pushnumber(passedState,_listEntry);
+		lua_call(passedState, 2, 0);
+		return;
+	}
 	// Returns -1 if user cancels
 	// Returns 1 based selection
-	intptr_t showList(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList){
+	intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList, lua_State* passedState, int _luaListId){
 		ControlsEnd();
 		int i;
 		char _optionsPerScreen;
@@ -206,7 +216,7 @@
 					}
 					_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 				}
-			}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){
+			}else if (WasJustPressed(SCE_CTRL_RTRIGGER)){
 				if (_lastUserSearchTerm!=NULL){
 					for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
 						if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
@@ -237,6 +247,10 @@
 					}
  					_valueToReturn = (intptr_t)(_multiList);
 					break;
+				}
+			}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){ // List more info
+				if (passedState!=NULL){
+					callListMoreInfo(passedState,_luaListId,_selection+1);
 				}
 			}
 			ControlsEnd();
@@ -327,6 +341,9 @@
 		}
 		ControlsEnd();
 		return _valueToReturn;
+	}
+	intptr_t showList(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList){
+		showListLua(_currentList,_listSize,_startingSelection,_multiList,NULL,0);
 	}
 	// _userInputNumber should be ONE BASED
 	char* getUserInputResultName(int _userInputNumber){
@@ -553,8 +570,10 @@
 			lua_call(L,0,1); // 1 result
 		}
 		// If returned false, exit.
-		if (lua_toboolean(L,-1)==0){
-			return;
+		if (lua_isboolean(L,-1)==1){
+			if (lua_toboolean(L,-1)==0){
+				return;
+			}
 		}
 		lua_pop(L,1);
 
@@ -923,7 +942,7 @@
 						// Code specific to list or multi list.
 						if (_listEntries[_currentList]!=NULL){
 							if (inputTypeQueue[_currentList]==INPUTTYPELIST){
-								int _tempUserAnswer = showList(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1,NULL); // Subtract 1 from starting index because result was one based.
+								int _tempUserAnswer = showListLua(_listEntries[_currentList],_listEntriesLength[_currentList],*((int*)userInputResults[_currentList])-1,NULL,passedState,_currentList+1); // Subtract 1 from starting index because result was one based.
 								if (_tempUserAnswer!=-1){
 									*((int*)(userInputResults[_currentList]))=_tempUserAnswer;
 									//int* _noob = malloc(4);
@@ -932,7 +951,7 @@
 								}
 								callListFinish(passedState,_currentList+1);
 							}else if (inputTypeQueue[_currentList]==INPUTTYPELISTMULTI){
-								NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showList(_listEntries[_currentList],_listEntriesLength[_currentList],((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))!=NULL ? *((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))-1 : 0,(NathanLinkedList*)userInputResults[_currentList]);
+								NathanLinkedList* _tempUserAnswer = (NathanLinkedList*)showListLua(_listEntries[_currentList],_listEntriesLength[_currentList],((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))!=NULL ? *((int*)(((NathanLinkedList*)userInputResults[_currentList])->memory))-1 : 0,(NathanLinkedList*)userInputResults[_currentList],passedState,_currentList+1);
 								if ((intptr_t)_tempUserAnswer!=(intptr_t)-1){
 									userInputResults[_currentList] = _tempUserAnswer;
 									if (((NathanLinkedList*)userInputResults[_currentList])->memory!=NULL){
