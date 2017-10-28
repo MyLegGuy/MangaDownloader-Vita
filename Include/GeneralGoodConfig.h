@@ -49,7 +49,7 @@
 	#ifndef PRESET
 		#define PRESET PRE_VITA
 	#endif
-	#define USEUMA0 1
+	#define USEUMA0 0
 	#define DOFIXCOORDS 0
 	#define USEVSYNC 0
 

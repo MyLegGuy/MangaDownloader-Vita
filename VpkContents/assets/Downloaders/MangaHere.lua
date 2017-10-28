@@ -14,18 +14,49 @@ function onListMoreInfo(listId, listEntry)
 	print("Entry: " .. listEntry)
 end
 
+function trimString(s)
+  return (s:gsub("^%s*(.-)%s*$", "%1"))
+end
+
 -- TODO - Make this
 function getChapterList(_passedUrl)
-	local _returnTable
+	--[[
+	<div class="detail_list">
+        <div class="title"><span></span><h3>Read 15-sai (ASAGI Ryuu) Online</h3></div>
+	<ul><li>
+           <span class="left">
+        <a class="color_0077" href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c005/">
+          15-sai (ASAGI Ryuu) 5            </a>
+      <span class="mr6"></span></span>
+                <span class="right">Apr 26, 2016</span>
+    </li>]]
+	local _returnTableUrl = {};
+	local _returnTableName = {};
 	showStatus("Getting chapter list HTML...");
 	local _tempDownloadedHTML = downloadString(_passedUrl);
 	showStatus("Parsing chapter list HTML...");
 	local _firstFound;
+	local _secondFound;
 	_firstFound = string.find(_tempDownloadedHTML,"detail_list",1,true);
 	while (true) do
-
+		-- get href url and then between > and <a/>
+		_firstFound = string.find(_tempDownloadedHTML,"href=",_firstFound+1,true);
+		_firstFound = _firstFound+12;
+		_secondFound = string.find(_tempDownloadedHTML,"\"",_firstFound+1,true);
+		local _foundUrl = string.sub(_tempDownloadedHTML,_firstFound,_secondFound-1);
+		if (string.sub(_foundUrl,1,1)=="/") then
+			break;
+		end
+		table.insert(_returnTableUrl,_foundUrl);
+		
+		_firstFound = string.find(_tempDownloadedHTML,">",_firstFound+1,true);
+		_secondFound = string.find(_tempDownloadedHTML,"</a>",_firstFound+1,true);
+		table.insert(_returnTableName,trimString(string.sub(_tempDownloadedHTML,_firstFound+1,_secondFound-1)))
+		-- TODO - Reverse table
 	end
+	return _returnTableName, _returnTableUrl
 end
+
 
 -- Fix series urls (and chapter urls?)
 function fixUrl(_passedUrl)
@@ -107,6 +138,12 @@ end
 function MyLegGuy_Prompt()
 	disableSSLVerification();
 	
+	local name, url = getChapterList("www.mangahere.co/manga/15_sai_asagi_ryuu/")
+	for i=1,#name do
+		print(name[i])
+		print(url[i])
+	end
+
 	getMangaList();
 	--happy = loadImageFromUrl("https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",FILETYPE_PNG)
 	--photoViewer(happy)
