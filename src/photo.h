@@ -15,11 +15,9 @@
 	You should have received a copy of the GNU General Public License
 	along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+	=================================================================
 
-	Changes:
-	=======
-	When the image is horizontal, right and left will be used to zoom.
-	Added debug code for Windows
+	THIS IS A MODIFIED VERSION OF THE ORIGINAL SOURCE CODE!
 */
 
 #ifndef __PHOTO_H__

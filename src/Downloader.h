@@ -1068,8 +1068,8 @@
 		WriteToDebugFile(lua_tostring(passedState,1));
 		return 0;
 	}
-	int L_disableSSL(lua_State* passedState){
-		disableSSL();
+	int L_disableSSLVerification(lua_State* passedState){
+		disableSSLVerification();
 		return 0;
 	}
 	// This function's return value can be used with photo viewer.
@@ -1101,6 +1101,10 @@
 		FreeTexture((CrossTexture*)lua_touserdata(passedState,1));
 		return 0;
 	}
+	int L_enableDownloadDebugInfo(lua_State* passedState){
+		downloadEnableDebugInfo();
+		return 0;
+	}
 
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
@@ -1121,11 +1125,12 @@
 		LUAREGISTER(L_printListStuff,"printListStuff");
 		LUAREGISTER(L_assignListData,"assignListData");
 		LUAREGISTER(L_writeToDebugFile,"WriteToDebugFile");
-		LUAREGISTER(L_disableSSL,"disableSSL");
+		LUAREGISTER(L_disableSSLVerification,"disableSSLVerification");
 		LUAREGISTER(L_setUserAgent,"setUserAgent");
 		LUAREGISTER(L_loadImageFromUrl,"loadImageFromUrl");
 		LUAREGISTER(L_photoViewer,"photoViewer");
 		LUAREGISTER(L_freeTexture,"freeTexture");
+		LUAREGISTER(L_enableDownloadDebugInfo,"enableDownloadDebugInfo");
 		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

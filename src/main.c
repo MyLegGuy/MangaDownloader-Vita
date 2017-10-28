@@ -1,7 +1,6 @@
-// TODO - OnListElementMoreInfo
-	// Can be used to display cover and stuff
-	// Combine with my new commands.
 // TODO - Include everything that my 3ds one had.
+// TODO - More site support. I made a list.
+	// Please fix nh before, though.
 #define VERSION 1
 
 #include <stdio.h>
@@ -179,25 +178,46 @@ void init(){
 		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
 	#endif
 }
+
+signed char mainMenuSelection(){
+	char* _tempList[3];
+	_tempList[0]="Read";
+	_tempList[1]="Download";
+	_tempList[2]="Exit";
+	return showList(_tempList, 3, 0, NULL)-1;
+}
+
 int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();
-	#if TEMPDEBUGMODE == 0
-		char* _noobList[2];
-		_noobList[0] = "Download and wait";
-		_noobList[1] = "Download as I go";
-		signed char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
-		if (_isAsIGo==-1){
+
+	while (1){
+		signed char _lastMainMenuSelectioin = mainMenuSelection();
+		if (_lastMainMenuSelectioin==0){ // Main read
+
+		}else if (_lastMainMenuSelectioin==1){ // Download
+			#if TEMPDEBUGMODE == 0
+				char* _noobList[2];
+				_noobList[0] = "Download and wait";
+				_noobList[1] = "Download as I go";
+				signed char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
+				if (_isAsIGo==-1){
+					return 0;
+				}
+			#else
+				printf("Is temp debug mode.\n");
+				char _isAsIGo=0;
+			#endif
+			char* _chosenScript = chooseScript();
+			if (_chosenScript==NULL){
+				return 0;
+			}
+			doScript(_chosenScript,_isAsIGo);
+		}else{ // The exit option and if the user cancels
 			return 0;
 		}
-	#else
-		printf("Is temp debug mode.\n");
-		char _isAsIGo=0;
-	#endif
-	char* _chosenScript = chooseScript();
-	if (_chosenScript==NULL){
-		return 0;
 	}
-	doScript(_chosenScript,_isAsIGo);
+
+	
 	return 0;
 }

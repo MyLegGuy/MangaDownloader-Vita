@@ -74,11 +74,14 @@
 				*_toStoreSize = chunkToDownloadTo.size;
 			}
 		}
-		void disableSSL(){
+		void disableSSLVerification(){
 			curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 		}
 		void setUserAgent(const char* _agentName){
 			curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, _agentName);
+		}
+		void downloadEnableDebugInfo(){
+			curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
 		}
 		void initDownload(){
 			#if PLATFORM == PLAT_VITA
@@ -97,7 +100,7 @@
 			curl_handle = curl_easy_init();
 			//curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
 			//curl_easy_setopt(curl_handle, CURLOPT_NOPROGRESS, 1L);
-
+			
 			// Loads the certificate for https stuff. If the certificate file does not exist, allow insecure connections
 			FixPath(CONSTANTCERTFILELOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
 			if (!checkFileExist(tempPathFixBuffer)){
