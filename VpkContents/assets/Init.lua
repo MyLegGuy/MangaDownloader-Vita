@@ -35,6 +35,13 @@ function sendJustDownloadedNew()
 	end
 end
 
+function goodJustDownloaded()
+	if (isAsIGo==true) then
+		incrementTotalDownloadedFiles(1);
+		requireNewDirectorySearch();
+	end
+end
+
 function makeFolderFriendly(str)
 	-- Remove characters you can't have in folder names
 	str = string.gsub(str,"~"," ");

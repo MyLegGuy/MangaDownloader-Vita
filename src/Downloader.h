@@ -969,8 +969,8 @@
 									}
 									pushUserInput(passedState,NULL,INPUTTYPELISTMULTI,_currentList+1);
 								}
+								callListFinish(passedState,_currentList+1);
 							}
-							callListFinish(passedState,_currentList+1);
 						}
 					}else if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 						*((int*)(userInputResults[_selection])) = inputNumber(*((int*)(userInputResults[_selection])));

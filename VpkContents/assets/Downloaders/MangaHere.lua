@@ -7,6 +7,9 @@ SAVEVARIABLE=0;
 currentMangaUrlList = {};
 currentMangaNameList = {};
 
+currentMangaChapterUrlList = {};
+currentMangaChapterNameList = {};
+
 --
 
 function onListMoreInfo(listId, listEntry)
@@ -18,7 +21,16 @@ function trimString(s)
   return (s:gsub("^%s*(.-)%s*$", "%1"))
 end
 
--- TODO - Make this
+function reverseTable(_inTable)
+	for i=1,math.floor(#_inTable/2) do
+		local _otherIndex = #_inTable-(i-1);
+		local _cachedInput = _inTable[_otherIndex];
+		_inTable[_otherIndex]=_inTable[i];
+		_inTable[i]=_cachedInput;
+	end
+	return _inTable;
+end
+
 function getChapterList(_passedUrl)
 	--[[
 	<div class="detail_list">
@@ -52,13 +64,15 @@ function getChapterList(_passedUrl)
 		_firstFound = string.find(_tempDownloadedHTML,">",_firstFound+1,true);
 		_secondFound = string.find(_tempDownloadedHTML,"</a>",_firstFound+1,true);
 		table.insert(_returnTableName,trimString(string.sub(_tempDownloadedHTML,_firstFound+1,_secondFound-1)))
-		-- TODO - Reverse table
 	end
+	-- Everything was found in reverse order of release
+	_returnTableName = reverseTable(_returnTableName);
+	_returnTableUrl = reverseTable(_returnTableUrl);
 	return _returnTableName, _returnTableUrl
 end
 
 
--- Fix series urls (and chapter urls?)
+-- Fix series urls and chapter urls. Needs to be used before passing as argument
 function fixUrl(_passedUrl)
 	return ("https://www." .. _passedUrl);
 end
@@ -99,18 +113,14 @@ function InitList01(isFirstTime)
 end
 
 function EndList01()
-	--getChapterList(seriesListUrl[userInput01])
-	--if (#chapterListFriendly>0) then
-	--	assignListData(currentQueueCLists,currentQueueCListsLength,1,chapterListFriendly)
-	--end
+	currentMangaChapterNameList, currentMangaChapterUrlList = getChapterList(fixUrl(currentMangaUrlList[userInput01]))
+	if (#currentMangaChapterNameList>0) then
+		assignListData(currentQueueCLists,currentQueueCListsLength,1,currentMangaChapterNameList)
+	end
 end
 
-function MyLegGuy_Download()
-	-- userInput01
-	print("Download here.")
-end
-
-function getWebpagesImage(url, _passedStatusPrefix)
+--wid60
+function getWebpagesImageRaw(_tempDownloadedHTML)
 	-- Relevant section
 	--[[
 		<section class="read_img" id="viewer">
@@ -124,25 +134,100 @@ function getWebpagesImage(url, _passedStatusPrefix)
 		</div>
 		</section>
 	]]
-	showStatus(_passedStatusPrefix .. "Getting webpage HTML...");
-	local _tempDownloadedHTML = downloadString(url);
-	showStatus(_passedStatusPrefix .. "Parsing webpage HTML...");
 	local _firstFound = string.find(_tempDownloadedHTML,"read_img",1,true);
 	_firstFound = string.find(_tempDownloadedHTML,"src=",_firstFound,true); -- This is the image source for the loading gif
 	_firstFound = string.find(_tempDownloadedHTML,"src=",_firstFound+1,true); -- This is the image source for the actual manga page
 	_firstFound = _firstFound+5;
 	_secondFound = string.find(_tempDownloadedHTML,"\"",_firstFound+1,true);
-	print((string.sub(_tempDownloadedHTML,_firstFound,_secondFound-1)))
+	return (string.sub(_tempDownloadedHTML,_firstFound,_secondFound-1)); 
 end
 
+function getChapterTotalPages(_tempDownloadedHTML)
+	--[[
+	<select class="wid60" onchange="change_page(this)">
+	<option value="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/" >1</option>
+	<option value="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/2.html" >2</option>
+	...
+	</select>
+	<a href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/29.html" class="next_page"></a>]]
+	local _firstFound = string.find(_tempDownloadedHTML,"wid60",1,true);
+	local _endIndex = string.find(_tempDownloadedHTML,"href=",_firstFound+1,true);
+	local i=0;
+	while (true) do
+		_firstFound = string.find(_tempDownloadedHTML,"<option",_firstFound+1,true);
+		if (_firstFound==nil or _firstFound>_endIndex) then
+			break;
+		end
+		i=i+1;
+	end
+	return i;
+end
+
+function getMangaFilepaths(_seriesUrl, _chapterName)
+	local _returnMangaSpecificFolder = getMangaFolder(true) .. string.match(_seriesUrl,".*/(.*)/");
+	local _returnMangaChapterFolder = _returnMangaSpecificFolder .. "/" .. makeFolderFriendly(_chapterName) .. "/";
+	return _returnMangaSpecificFolder, _returnMangaChapterFolder;
+end
+
+--	Look for the <manganame> manga string.
+-- For example, 15-SAI (ASAGI RYUU) Manga
+function doChapter(_passedChapterUrl, _passedStatusPrefix, _passedDownloadDirectory)
+	goodShowStatus(_passedStatusPrefix .. "Getting page HTML 1/?");
+	-- _passedChapterUrl is actually link to first page
+	local _currentDownloadedHTML = downloadString(_passedChapterUrl);
+	goodShowStatus(_passedStatusPrefix .. "Parsing number of pages...");
+	local _totalPagesToDownload = getChapterTotalPages(_currentDownloadedHTML);
+	for i=1,_totalPagesToDownload do
+		-- We already downloaded the first page's HTML
+		if (i~=1) then
+			goodShowStatus(_passedStatusPrefix .. "Getting page HTML " .. i .. "/" .. _totalPagesToDownload)
+			_currentDownloadedHTML = downloadString(_passedChapterUrl .. i .. ".html");
+		end
+		local _imageUrl = getWebpagesImageRaw(_currentDownloadedHTML);
+		goodShowStatus("Downloading page" .. i .. "/" .. _totalPagesToDownload)
+		downloadFile(_imageUrl,_passedDownloadDirectory .. string.format("%03d",i) .. ".jpg")
+		goodJustDownloaded()
+	end
+end
+
+function doChapterBroad(_seriesUrl, _chapterUrl, _chapterName, _statusPrefix)
+	local _mangaSpecificFolder, _mangaChapterFolder = getMangaFilepaths(_seriesUrl,_chapterName)
+	
+	createDirectory(_mangaSpecificFolder);
+	createDirectory(_mangaChapterFolder);
+
+	--makeFolderFriendly
+	doChapter(fixUrl(_chapterUrl),_statusPrefix,_mangaChapterFolder)
+end
+
+function InitList02(isFirstTime)
+	if (isFirstTime>=1) then
+		return currentMangaChapterNameList;
+	end
+	return nil;
+end
+function MyLegGuy_Download()
+	-- userInput01
+	print("Download here.")
+	
+	for i=1,#userInput02 do
+		doChapterBroad(_currentSeriesUrl,currentMangaChapterUrlList[userInput02[i]],currentMangaChapterNameList[userInput02[i]], i .. "/" .. #userInput02)
+	end
+	setDoneDownloading()
+end
 function MyLegGuy_Prompt()
 	disableSSLVerification();
 	
-	local name, url = getChapterList("www.mangahere.co/manga/15_sai_asagi_ryuu/")
-	for i=1,#name do
-		print(name[i])
-		print(url[i])
-	end
+	--local name, url = getChapterList("www.mangahere.co/manga/15_sai_asagi_ryuu/")
+	--for i=1,#name do
+	--	print(name[i])
+	--	print(url[i])
+	--end
+	--doChapterBroad("www.mangahere.co/manga/15_sai_asagi_ryuu/",url[2],name[2],"test good stuff\n");
+	
+	--http://www.mangahere.co/manga/15_sai_asagi_ryuu/c001/3.html
+	
+
 
 	getMangaList();
 	--happy = loadImageFromUrl("https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",FILETYPE_PNG)
@@ -150,7 +235,37 @@ function MyLegGuy_Prompt()
 	--freeTexture(happy)
 	
 	--downloadFile("https://www.mangahere.co/mangalist/","./testdownloaded4")
-
+	
 	userInputQueue("Manga","Choose the manga series you want.",INPUTTYPELIST)
+	if (isAsIGo==false) then
+		userInputQueue("Chapter","Choose the chapter of the manga you want.",INPUTTYPELISTMULTI)
+	else
+		userInputQueue("Chapter","Choose the chapter of the manga you want.",INPUTTYPELIST)
+	end
 	waitForUserInputs();
+
+
+	_currentSeriesName = currentMangaNameList[userInput01];
+	_currentSeriesUrl = currentMangaUrlList[userInput01];
+
+	
+
+	if (isAsIGo==true) then
+		local _currentChapterName = currentMangaChapterNameList[userInput02];
+		local _currentChapterUrl = currentMangaChapterUrlList[userInput02];
+		_,_asIgoFolder=getMangaFilepaths(_currentSeriesUrl,_currentChapterName);
+		print("Setting ")
+		print(_asIgoFolder)
+	end
+	-- Change this into an array to work like multi
+	if (isAsIGo==true) then
+		local _tempCacheVariable = userInput02;
+		userInput02 = {};
+		table.insert(userInput02,_tempCacheVariable);
+	end
+
+	currentMangaUrlList = nil; -- These huge lists aren't needed anymore.
+	currentMangaNameList = nil;
+	
+	
 end
