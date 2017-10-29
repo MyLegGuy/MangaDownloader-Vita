@@ -102,7 +102,7 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	if (_startIndex>=_mangaDirectoryLength){
 		if (isDoneDownloading==1){
 			if (*_toStorePage!=NULL){
-				FreeTexture(*_toStorePage);
+				freeTexture(*_toStorePage);
 				*_toStorePage=NULL;
 			}
 			if (*_currentRelativeFilename!=NULL){
@@ -113,18 +113,18 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		}
 		popupMessage("Waiting for the next page.\nYou may go to the previous page if you wish.",0,0);
 		unsigned short _cacheTotalDownloadedFiles = totalDownloadedFiles;
-		ControlsStart();
-		ControlsEnd();
+		controlsStart();
+		controlsEnd();
 		while (_cacheTotalDownloadedFiles==totalDownloadedFiles){
 			sceKernelDelayThread(350000); // Wait one fourth of a second
-			ControlsStart();
-			if (WasJustPressed(SCE_CTRL_UP) || WasJustPressed(SCE_CTRL_LEFT)){
+			controlsStart();
+			if (wasJustPressed(SCE_CTRL_UP) || wasJustPressed(SCE_CTRL_LEFT)){
 				// from vitashell
 				readPad();
 				readPad();
 				return LOADNEW_RETURNEDSAME;
 			}
-			ControlsEnd();
+			controlsEnd();
 		}
 		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset);
 	}
@@ -135,16 +135,16 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	//WriteToDebugFile(_tempPathFixBuffer);
 	if (strcmp(getFileExtention(_tempPathFixBuffer,3),"jpg")==0){
 		if (*_toStorePage!=NULL){
-			FreeTexture(*_toStorePage);
+			freeTexture(*_toStorePage);
 			*_toStorePage=NULL;
 		}
-		*_toStorePage = LoadJPG(_tempPathFixBuffer);
+		*_toStorePage = loadJPG(_tempPathFixBuffer);
 	}else if (strcmp(getFileExtention(_tempPathFixBuffer,3),"png")==0){
 		if (*_toStorePage!=NULL){
-			FreeTexture(*_toStorePage);
+			freeTexture(*_toStorePage);
 			*_toStorePage=NULL;
 		}
-		*_toStorePage = LoadPNG(_tempPathFixBuffer);
+		*_toStorePage = loadPNG(_tempPathFixBuffer);
 	}else{
 		popupMessage("Unknwon filetype.",1,0);
 		popupMessage(getFileExtention(_tempPathFixBuffer,3),1,0);

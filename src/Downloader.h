@@ -124,7 +124,7 @@
 	// Returns -1 if user cancels
 	// Returns 1 based selection
 	intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList, lua_State* passedState, int _luaListId){
-		ControlsEnd();
+		controlsEnd();
 		int i;
 		char _optionsPerScreen;
 		int _selection=_startingSelection;
@@ -158,24 +158,24 @@
 		char _scrollStatus=SCROLLSTATUS_NEEDCHECK;
 		while (1){
 			FpsCapStart();
-			ControlsStart();
-			if (WasJustPressed(SCE_CTRL_DOWN)){
+			controlsStart();
+			if (wasJustPressed(SCE_CTRL_DOWN)){
 				_selection = moveCursor(_selection,_listSize,1,1);
 				_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-			}else if (WasJustPressed(SCE_CTRL_UP)){
+			}else if (wasJustPressed(SCE_CTRL_UP)){
 				_selection = moveCursor(_selection,_listSize,1,-1);
 				_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-			}else if (WasJustPressed(SCE_CTRL_RIGHT)){
+			}else if (wasJustPressed(SCE_CTRL_RIGHT)){
 				_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET);
 				_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-			}else if (WasJustPressed(SCE_CTRL_LEFT)){
+			}else if (wasJustPressed(SCE_CTRL_LEFT)){
 				_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET*-1);
 				_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-			}else if (WasJustPressed(SCE_CTRL_CROSS)){
+			}else if (wasJustPressed(SCE_CTRL_CROSS)){
 				if (_multiList==NULL){
 					_valueToReturn = _selection+1;
 					break;
@@ -186,7 +186,7 @@
 						_selectedList[_selection]=0;
 					}
 				}
-			}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
 				if (_multiList!=NULL){
 					if (popupMessage("Are you sure you would like to go back? You will loose all your selected entries. (If you want to keep your selected entries, answer \"no\" to this question then press START.)",1,1)==1){
 						_valueToReturn = -1;
@@ -196,7 +196,7 @@
 					_valueToReturn = -1;
 					break;
 				}
-			}else if (WasJustPressed(SCE_CTRL_SQUARE)){
+			}else if (wasJustPressed(SCE_CTRL_SQUARE)){
 				// SEARCH LIST FUNCTION
 				char* _tempUserAnswer = userKeyboardInput(_lastUserSearchTerm!=NULL ? _lastUserSearchTerm : "","Search",99);
 				if (_lastUserSearchTerm!=NULL){
@@ -216,7 +216,7 @@
 					}
 					_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 				}
-			}else if (WasJustPressed(SCE_CTRL_RTRIGGER)){
+			}else if (wasJustPressed(SCE_CTRL_RTRIGGER)){
 				if (_lastUserSearchTerm!=NULL){
 					for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
 						if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
@@ -234,7 +234,7 @@
 					}
 					_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 				}
-			}else if (WasJustPressed(SCE_CTRL_START)){
+			}else if (wasJustPressed(SCE_CTRL_START)){
 				if (_multiList!=NULL){
 					freeLinkedList(_multiList);
 					_multiList = calloc(1,sizeof(NathanLinkedList));
@@ -248,56 +248,56 @@
  					_valueToReturn = (intptr_t)(_multiList);
 					break;
 				}
-			}else if (WasJustPressed(SCE_CTRL_TRIANGLE)){ // List more info
+			}else if (wasJustPressed(SCE_CTRL_TRIANGLE)){ // List more info
 				if (passedState!=NULL){
 					callListMoreInfo(passedState,_luaListId,_selection+1);
 				}
 			}
-			ControlsEnd();
+			controlsEnd();
 	
-			StartDrawing();
+			startDrawing();
 			for (i=0;i<_optionsPerScreen;i++){
 				if (i+_selectionListOffset!=_selection){
 					if (_multiList==NULL){
-						GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+						goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
 					}else{
 						if (_selectedList[i+_selectionListOffset]==1){
-							GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLORMARKED);
+							goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLORMARKED);
 						}else{
-							GoodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+							goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
 						}
 					}
 				}
 			}
 			if (_multiList==NULL){
 				if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
-					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
 				}else{
-					GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
 				}
 			}else{
 				if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
 					if (_selectedList[_selection]==1){
-						GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORMARKEDHOVER);
+						goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORMARKEDHOVER);
 					}else{
-						GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+						goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
 					}
 				}else{
 					if (_selectedList[_selection]==1){
-						GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORMARKEDHOVER );
+						goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORMARKEDHOVER );
 					}else{
-						GoodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+						goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
 					}
 					
 				}
 			}
-			GoodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
-			EndDrawing();
+			goodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
+			endDrawing();
 	
 			// Timer until long words start to scroll.
 			if (_scrollStatus!=SCROLLSTATUS_NOSCROLL){
 				if (_scrollStatus==SCROLLSTATUS_NEEDCHECK){
-					if (TextWidth(fontSize,_currentList[_selection])+cursorWidth+5>screenWidth){
+					if (textWidth(fontSize,_currentList[_selection])+cursorWidth+5>screenWidth){
 						_scrollStatus = SCROLLSTATUS_WAITING;	
 					}
 					_framesUntilScroll=60;
@@ -313,7 +313,7 @@
 					if (_framesUntilScroll==0){
 						_framesUntilScroll = SCROLLCHARSPEED;
 						_scrollCharOffset++;
-						if (TextWidth(fontSize,&(_currentList[_selection][_scrollCharOffset]))+cursorWidth+5<screenWidth){
+						if (textWidth(fontSize,&(_currentList[_selection][_scrollCharOffset]))+cursorWidth+5<screenWidth){
 							_scrollStatus = SCROLLSTATUS_ENDWAITPLUSONE;
 							_framesUntilScroll=SCROLLCHARSPEED;
 						}
@@ -339,11 +339,11 @@
 		if (_lastUserSearchTerm!=NULL){
 			free(_lastUserSearchTerm);
 		}
-		ControlsEnd();
+		controlsEnd();
 		return _valueToReturn;
 	}
 	intptr_t showList(char** _currentList, int _listSize, int _startingSelection, NathanLinkedList* _multiList){
-		showListLua(_currentList,_listSize,_startingSelection,_multiList,NULL,0);
+		return showListLua(_currentList,_listSize,_startingSelection,_multiList,NULL,0);
 	}
 	// _userInputNumber should be ONE BASED
 	char* getUserInputResultName(int _userInputNumber){
@@ -367,42 +367,42 @@
 		free(_userInputResultName);
 	}
 	int inputNumber(int _startingNumber){
-		ControlsEnd();
+		controlsEnd();
 		int _currentNumber = _startingNumber;
 		char _numberTextBuffer[10];
 		gooditoa(_currentNumber,_numberTextBuffer,10);
 		while (1){
 			FpsCapStart();
 	
-			ControlsStart();
-			if (WasJustPressed(SCE_CTRL_UP)){
+			controlsStart();
+			if (wasJustPressed(SCE_CTRL_UP)){
 				_currentNumber+=1;
 				gooditoa(_currentNumber,_numberTextBuffer,10);
-			}else if (WasJustPressed(SCE_CTRL_DOWN)){
+			}else if (wasJustPressed(SCE_CTRL_DOWN)){
 				_currentNumber-=1;
 				if (_currentNumber<0){
 					_currentNumber=0;
 				}
 				gooditoa(_currentNumber,_numberTextBuffer,10);
-			}else if (WasJustPressed(SCE_CTRL_RIGHT)){
+			}else if (wasJustPressed(SCE_CTRL_RIGHT)){
 				_currentNumber+=LISTLEFTRIGHTJUMPOFFSET;
 				gooditoa(_currentNumber,_numberTextBuffer,10);
-			}else if (WasJustPressed(SCE_CTRL_LEFT)){
+			}else if (wasJustPressed(SCE_CTRL_LEFT)){
 				_currentNumber-=LISTLEFTRIGHTJUMPOFFSET;
 				if (_currentNumber<0){
 					_currentNumber=0;
 				}
 				gooditoa(_currentNumber,_numberTextBuffer,10);
-			}else if (WasJustPressed(SCE_CTRL_CROSS)){
+			}else if (wasJustPressed(SCE_CTRL_CROSS)){
 				return _currentNumber;
-			}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
 				return _startingNumber;
 			}
-			ControlsEnd();
+			controlsEnd();
 	
-			StartDrawing();
-			GoodDrawTextColored(0,0,_numberTextBuffer,fontSize,COLORSELECTED);
-			EndDrawing();
+			startDrawing();
+			goodDrawTextColored(0,0,_numberTextBuffer,fontSize,COLORSELECTED);
+			endDrawing();
 	
 			FpsCapWait();
 		}	
@@ -746,8 +746,8 @@
 	}
 	// Returns false if user quit, true otherwise
 	int L_waitForUserInputs(lua_State* passedState){
-		ControlsStart();
-		ControlsEnd();
+		controlsStart();
+		controlsEnd();
 		
 		numberOfPrompts++;
 		char _specificOptionsNumber=255;
@@ -775,7 +775,7 @@
 	
 		unsigned char _saveOrLoadSlot=0;
 		char _userDidQuit=0;
-		short _colonSpaceWidth=TextWidth(fontSize,": ");
+		short _colonSpaceWidth=textWidth(fontSize,": ");
 		// - slot 1]
 		char _slotString[13] = " - slot 0]";
 		char _currentSlotExists;
@@ -800,13 +800,13 @@
 		// Allow user to input stuff
 		while (1){
 			FpsCapStart();
-			ControlsStart();
-			if (WasJustPressed(SCE_CTRL_DOWN)){
+			controlsStart();
+			if (wasJustPressed(SCE_CTRL_DOWN)){
 				_selection++;
 				if ((_saveAndLoadEnabled==1 && _selection>currentQueue+2) || (_saveAndLoadEnabled==0 && _selection>currentQueue)){
 					_selection=0;
 				}
-			}else if (WasJustPressed(SCE_CTRL_UP)){
+			}else if (wasJustPressed(SCE_CTRL_UP)){
 				_selection--;
 				if (_selection<0){
 					if (_saveAndLoadEnabled==1){
@@ -815,7 +815,7 @@
 						_selection=currentQueue;
 					}
 				}
-			}else if (WasJustPressed(SCE_CTRL_LEFT)){
+			}else if (wasJustPressed(SCE_CTRL_LEFT)){
 				if (_selection<currentQueue){
 					if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 						(*((int*)(userInputResults[_selection])))--;
@@ -829,7 +829,7 @@
 						_currentSlotExists = checkFileExist(_compiledOptionsPath);
 					}
 				}
-			}else if (WasJustPressed(SCE_CTRL_RIGHT)){
+			}else if (wasJustPressed(SCE_CTRL_RIGHT)){
 				if (_selection<currentQueue){
 					if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 						(*((int*)(userInputResults[_selection])))++;
@@ -843,7 +843,7 @@
 						_currentSlotExists = checkFileExist(_compiledOptionsPath);
 					}
 				}
-			}else if (WasJustPressed(SCE_CTRL_CROSS)){
+			}else if (wasJustPressed(SCE_CTRL_CROSS)){
 				if (_saveAndLoadEnabled==1){
 					if (_selection==currentQueue){
 						_currentSlotExists=1;
@@ -984,53 +984,53 @@
 						}
 					}
 				}
-			}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+			}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
 				_userDidQuit=1;
 				break;
-			}else if (WasJustPressed(SCE_CTRL_SQUARE)){
+			}else if (wasJustPressed(SCE_CTRL_SQUARE)){
 				if (_selection<currentQueue){
 					popupMessage(longNameQueue[_selection],1,0);
 				}
 			}
-			ControlsEnd();
-			StartDrawing();
-			GoodDrawTextColored(0,currentTextHeight*_selection,">",fontSize,COLORSELECTED);
+			controlsEnd();
+			startDrawing();
+			goodDrawTextColored(0,currentTextHeight*_selection,">",fontSize,COLORSELECTED);
 			for (i=0;i<currentQueue;i++){
 				int _currentDrawWidth=cursorWidth+5;
-				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,shortNameQueue[i],fontSize,COLOROPTION);
-				_currentDrawWidth+=TextWidth(fontSize,shortNameQueue[i]);
-				GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
+				goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,shortNameQueue[i],fontSize,COLOROPTION);
+				_currentDrawWidth+=textWidth(fontSize,shortNameQueue[i]);
+				goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
 				_currentDrawWidth+=_colonSpaceWidth;
 				if (inputTypeQueue[i]==INPUTTYPELIST){
 					if (_listEntries[i]!=NULL){
-						GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)userInputResults[i])-1],fontSize,COLORSELECTED);
+						goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)userInputResults[i])-1],fontSize,COLORSELECTED);
 					}
 				}else if (inputTypeQueue[i]==INPUTTYPENUMBER){
 					char _tempNumberBuffer[10];
 					gooditoa(*((int*)userInputResults[i]),_tempNumberBuffer,10);
-					GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,fontSize,COLORSELECTED);
+					goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,fontSize,COLORSELECTED);
 				}else if (inputTypeQueue[i]==INPUTTYPESTRING){
 					if (userInputResults[i]!=NULL){
-						GoodDrawTextColored(_currentDrawWidth,currentTextHeight*i,userInputResults[i],fontSize,COLORSELECTED);
+						goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,userInputResults[i],fontSize,COLORSELECTED);
 					}
 				}
 			}
 			if (_saveAndLoadEnabled==1){
-				GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"[Save",fontSize,COLOROPTION);
-				GoodDrawTextColored(cursorWidth+5,currentTextHeight*(i+1),"[Load",fontSize,COLOROPTION);
+				goodDrawTextColored(cursorWidth+5,currentTextHeight*i,"[Save",fontSize,COLOROPTION);
+				goodDrawTextColored(cursorWidth+5,currentTextHeight*(i+1),"[Load",fontSize,COLOROPTION);
 				if (_currentSlotExists==1){
-				GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORMAYBE);
-				GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORVALID);
+				goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORMAYBE);
+				goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORVALID);
 				}else{
-				GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORVALID);
-				GoodDrawTextColored(cursorWidth+5+TextWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORINVALID);
+				goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORVALID);
+				goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORINVALID);
 				}
-				GoodDrawTextColored(cursorWidth+5,currentTextHeight*(i+2),"Done",fontSize,COLOROPTION);
+				goodDrawTextColored(cursorWidth+5,currentTextHeight*(i+2),"Done",fontSize,COLOROPTION);
 			}else{
 	
-				GoodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
+				goodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
 			}
-			EndDrawing();
+			endDrawing();
 			
 			FpsCapWait();
 		}
@@ -1084,11 +1084,12 @@
 		int _loadFileType = lua_tonumber(passedState,2);
 		CrossTexture* _loadedUrlTexture;
 		if (_loadFileType == FILETYPE_PNG){
-			_loadedUrlTexture = LoadPNGBuffer(_foundBuffer,_foundSize);
+			_loadedUrlTexture = loadPNGBuffer(_foundBuffer,_foundSize);
 		}else if (_loadFileType == FILETYPE_JPG){
-			_loadedUrlTexture = LoadJPGBuffer(_foundBuffer,_foundSize);
+			_loadedUrlTexture = loadJPGBuffer(_foundBuffer,_foundSize);
 		}else{
 			popupMessage("Missing texture format!",1,0);
+			_loadedUrlTexture = NULL;
 		}
 		lua_pushlightuserdata(passedState,_loadedUrlTexture);
 		return 1;
@@ -1098,7 +1099,7 @@
 		return 0;
 	}
 	int L_freeTexture(lua_State* passedState){
-		FreeTexture((CrossTexture*)lua_touserdata(passedState,1));
+		freeTexture((CrossTexture*)lua_touserdata(passedState,1));
 		return 0;
 	}
 	int L_enableDownloadDebugInfo(lua_State* passedState){
@@ -1143,22 +1144,22 @@
 		MakeLuaUseful();
 		initDownload();
 		// Construct fixed paths
-		FixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
+		fixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
 		downloadersLocation = malloc(strlen(tempPathFixBuffer)+1);
 		strcpy(downloadersLocation,tempPathFixBuffer);
-		FixPath(CONSTANTMANGAFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
+		fixPath(CONSTANTMANGAFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
 		mangaFolderRoot = malloc(strlen(tempPathFixBuffer)+1);
 		strcpy(mangaFolderRoot,tempPathFixBuffer);
-		FixPath(CONSTANTOPTIONSFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
+		fixPath(CONSTANTOPTIONSFOLDERROOT,tempPathFixBuffer,TYPE_DATA);
 		optionsLocation = malloc(strlen(tempPathFixBuffer)+1);
 		strcpy(optionsLocation,tempPathFixBuffer);
 		// Make using fixed paths
 		createDirectory(mangaFolderRoot);
 		createDirectory(optionsLocation);
 		// Run init scripts
-		FixPath("assets/Init.lua",tempPathFixBuffer,TYPE_EMBEDDED);
+		fixPath("assets/Init.lua",tempPathFixBuffer,TYPE_EMBEDDED);
 		luaL_dofile(L,tempPathFixBuffer);
-		FixPath("assets/GlobalTracking.lua",tempPathFixBuffer,TYPE_EMBEDDED);
+		fixPath("assets/GlobalTracking.lua",tempPathFixBuffer,TYPE_EMBEDDED);
 		luaL_dofile(L,tempPathFixBuffer);
 	}
 #endif

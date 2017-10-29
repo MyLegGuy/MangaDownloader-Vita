@@ -23,7 +23,7 @@
 #ifndef __PHOTO_H__
 #define __PHOTO_H__
 
-#if PLATFORM == PLAT_WINDOWS
+#if PLATFORM == PLAT_COMPUTER
 
 void sceKernelDelayThread(int _noob){
 	FpsCapStart();
@@ -31,8 +31,8 @@ void sceKernelDelayThread(int _noob){
 }
 
 void readPad(){
-	ControlsStart();
-	ControlsEnd();
+	controlsStart();
+	controlsEnd();
 }
 
 // My code
@@ -54,27 +54,27 @@ void photoViewer(CrossTexture* _passedTexture){
 	}
 	while (1){
 		FpsCapStart();
-		StartDrawing();
-		DrawTexture(tex,0,0);
-		EndDrawing();
-		ControlsStart();
-		if (WasJustPressed(SCE_CTRL_RIGHT) || WasJustPressed(SCE_CTRL_LEFT)){
+		startDrawing();
+		drawTexture(tex,0,0);
+		endDrawing();
+		controlsStart();
+		if (wasJustPressed(SCE_CTRL_RIGHT) || wasJustPressed(SCE_CTRL_LEFT)){
 			if (_isSingleImageMode==1){
-				FreeTexture(tex);
+				freeTexture(tex);
 				break;
 			}
-			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,WasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
 				printf("Done with manga.\n");
 				return;
 			}
 		}
-		if (WasJustPressed(SCE_CTRL_CIRCLE)){
-			FreeTexture(tex);
+		if (wasJustPressed(SCE_CTRL_CIRCLE)){
+			freeTexture(tex);
 			break;
 		}
-		ControlsEnd();
+		controlsEnd();
 		FpsCapWait();
 	}
 }
@@ -295,10 +295,10 @@ void photoViewer(CrossTexture* _singleTexture) {
 		return;
 
 	vita2d_texture* tex=NULL;
+	char* _currentRelativeFilename=NULL;
 	if (_isSingleImageMode==1){
 		tex=_singleTexture;
 	}else{
-		char* _currentRelativeFilename=NULL;
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			free(buffer);
@@ -432,7 +432,7 @@ void photoViewer(CrossTexture* _singleTexture) {
 
 		// Start drawing
 		//startDrawing(bg_photo_image);
-		StartDrawing();
+		startDrawing();
 
 		// Photo
 		vita2d_draw_texture_scale_rotate_hotspot(tex, _halfScreenWidth, _halfScreenHeight, zoom, zoom, rad, x, y);
@@ -442,10 +442,10 @@ void photoViewer(CrossTexture* _singleTexture) {
 		//	pgf_draw_textf(SHELL_MARGIN_X, screenHeight - 3.0f * SHELL_MARGIN_Y, PHOTO_ZOOM_COLOR, FONT_SIZE, "%.0f%%", zoom * 100.0f);
 
 		// End drawing
-		EndDrawing();
+		endDrawing();
 	}
 
-	FreeTexture(tex);
+	freeTexture(tex);
 
 	free(buffer);
 

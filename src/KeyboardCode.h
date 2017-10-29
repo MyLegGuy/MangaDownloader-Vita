@@ -159,7 +159,7 @@
 			return _resultText;
 		}
 
-	#elif PLATFORM == PLAT_WINDOWS
+	#elif PLATFORM == PLAT_COMPUTER
 		#if SUBPLATFORM != SUB_UNIX
 			// This is a public domain function
 			size_t getline(char **lineptr, size_t *n, FILE *stream) {

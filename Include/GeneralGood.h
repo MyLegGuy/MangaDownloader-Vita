@@ -1,7 +1,19 @@
 #ifndef GENERALGOOD_H
 #define GENERALGOOD_H
 
-#if PLATFORM == PLAT_WINDOWS
+#if PLATFORM == PLAT_VITA
+	#include <psp2/ctrl.h>
+	#include <psp2/kernel/processmgr.h>
+	#include <psp2/rtc.h>
+	#include <psp2/types.h>
+	#include <psp2/display.h>
+	#include <psp2/touch.h>
+	#include <psp2/io/fcntl.h>
+	#include <psp2/io/dirent.h>
+	#include <psp2/power.h>
+#endif
+
+#if PLATFORM == PLAT_COMPUTER
 	#define CROSSDIR DIR*
 	#define CROSSDIRSTORAGE struct dirent*
 #elif PLATFORM == PLAT_VITA
@@ -33,7 +45,7 @@
 	#include <sys/stat.h>
 #endif
 
-#if PLATFORM == PLAT_WINDOWS
+#if PLATFORM == PLAT_COMPUTER
 	// Header for directory functions
 	#include <dirent.h>
 #endif
@@ -43,7 +55,7 @@
 // Headers for wait function
 #if RENDERER == REND_SDL
 	#include <SDL2/SDL.h>
-#elif PLATFORM == PLAT_WINDOWS
+#elif PLATFORM == PLAT_COMPUTER
 	#include <windows.h>
 #endif
 
@@ -63,7 +75,6 @@ typedef int8_t		s8;
 typedef int16_t		s16;
 typedef int32_t		s32;
 typedef int64_t		s64;
-
 
 signed char checkFileExist(const char* location);
 void createDirectory(const char* path);

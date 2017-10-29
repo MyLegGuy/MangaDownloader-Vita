@@ -38,7 +38,7 @@ void WriteToDebugFile(const char* stuff);
 
 /////////////////////////////////////////////////////////
 char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
-	ControlsEnd();
+	controlsEnd();
 	// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
 	char message[strlen(_tempMsg)+1+strlen("\n(X for YES, O for NO)")];
 	strcpy(message,_tempMsg);
@@ -54,7 +54,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	for (i = 0; i < totalMessageLength; i++){
 		if (message[i]==32){ // Only check when we meet a space. 32 is a space in ASCII
 			message[i]='\0';
-			if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+			if (textWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
 				char _didWork=0;
 				for (j=i-1;j>lastNewlinePosition+1;j--){
 					//printf("J:%d\n",j);
@@ -78,7 +78,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 		}
 	}
 	// This code will make a new line if there needs to be one because of the last word
-	if (TextWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+	if (textWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
 		for (j=totalMessageLength-1;j>lastNewlinePosition+1;j--){
 			if (message[j]==32){
 				message[j]='\0';
@@ -92,44 +92,44 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	// This will change if the text box has multiple screens because the text is too long
 	int offsetStrlen=0;
 	//  textboxNewCharSpeed
-	ControlsEnd();
+	controlsEnd();
 	_numberOfLines-=currentlyVisibleLines;
 	do{
 		FpsCapStart();
-		ControlsStart();
+		controlsStart();
 		int _lastStrlen=0;
-		if (WasJustPressed(SCE_CTRL_CROSS)){
+		if (wasJustPressed(SCE_CTRL_CROSS)){
 			if (_numberOfLines<=0){
 				if (_isQuestion==1){
-					ControlsEnd();
+					controlsEnd();
 					return 1;
 				}
 				break;
 			}
 			offsetStrlen += strlen(&message[offsetStrlen])+1;
 			_numberOfLines--;
-		}else if (WasJustPressed(SCE_CTRL_CIRCLE)){
+		}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
 			if (_isQuestion==1){
-				ControlsEnd();
+				controlsEnd();
 				return 0;
 			}
 		}
-		ControlsEnd();
-		StartDrawing();
+		controlsEnd();
+		startDrawing();
 		// We need this variable so we know the offset in the message for the text that is for the next line
 		_lastStrlen=0;
 		for (i=0;i<currentlyVisibleLines;i++){
-			GoodDrawTextColored(5,TextHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
+			goodDrawTextColored(5,textHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
 			// This offset will have the first letter for the next line
 			_lastStrlen = strlen(&message[_lastStrlen+offsetStrlen])+1+_lastStrlen;
 			if (_lastStrlen>=totalMessageLength){
 				break;
 			}
 		}
-		EndDrawing();
+		endDrawing();
 		FpsCapWait();
 	}while(_waitForAButton==1);
-	ControlsEnd();
+	controlsEnd();
 	return 0;
 }
 void WriteToDebugFile(const char* stuff){
@@ -165,12 +165,12 @@ void init(){
 	ClearDebugFile();
 	initGraphics(640,480, &screenWidth, &screenHeight);
 	// Text
-	FixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
-	LoadFont(tempPathFixBuffer);
-	currentTextHeight = TextHeight(fontSize);
-	cursorWidth = TextWidth(fontSize,">");
+	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
+	loadFont(tempPathFixBuffer);
+	currentTextHeight = textHeight(fontSize);
+	cursorWidth = textWidth(fontSize,">");
 	// Make data folder
-	FixPath("",tempPathFixBuffer,TYPE_DATA);
+	fixPath("",tempPathFixBuffer,TYPE_DATA);
 	createDirectory(tempPathFixBuffer);
 
 	#if PLATFORM == PLAT_VITA

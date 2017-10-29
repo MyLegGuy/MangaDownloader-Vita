@@ -25,6 +25,17 @@
 		//int SCE_TOUCH = 19;
 	};
 #endif
+#if PLATFORM == PLAT_VITA
+	#include <psp2/ctrl.h>
+	#include <psp2/kernel/processmgr.h>
+	#include <psp2/rtc.h>
+	#include <psp2/types.h>
+	#include <psp2/display.h>
+	#include <psp2/touch.h>
+	#include <psp2/io/fcntl.h>
+	#include <psp2/io/dirent.h>
+	#include <psp2/power.h>
+#endif
 
 extern char tempPathFixBuffer[256];
 extern char* DATAFOLDER;
@@ -34,21 +45,19 @@ extern char* DATAFOLDER;
 #define TYPE_DATA 1
 #define TYPE_EMBEDDED 2
 
-void ControlsEnd();
-void ControlsResetEmpty();
-void ControlsResetFull();
-void ControlsReset();
-void ControlsStart();
-void FixCoords(int* _x, int* _y);
-void FixPath(char* filename,char _buffer[], char type);
-void GenerateDefaultDataDirectory(char** _dataDirPointer, char _useUma0);
-signed char IsDown(int value);
+void controlsEnd();
+void controlsResetEmpty();
+void controlsStart();
+void fixCoords(int* _x, int* _y);
+void fixPath(char* filename,char _buffer[], char type);
+void generateDefaultDataDirectory(char** _dataDirPointer, char _useUma0);
+signed char isDown(int value);
 #if SUBPLATFORM == SUB_ANDROID
 	void itoa(int _num, char* _buffer, int _uselessBase);
 #endif
-void MakeDataDirectory();
-signed char WasJustPressedRegardless(int value);
-signed char WasJustPressed(int value);
-signed char WasJustReleased(int value);
+void makeDataDirectory();
+signed char wasJustPressedRegardless(int value);
+signed char wasJustPressed(int value);
+signed char wasJustReleased(int value);
  
 #endif /* GENERALGOODEXTENDED_H */
