@@ -3,7 +3,7 @@ You need...
 * Curl, OpenSSL.\n
 	You can get these precompiled from [vdpm](https://github.com/vitasdk/vdpm).
 * [Lua](https://www.lua.org/download.html).
-	You will need to compile this yourself.
+	You will need to compile this yourself. Put header files in \<Header file root directory\>/Lua/
 * [libvita2d](https://github.com/xerpi/libvita2d).
 	Included in vdpm, I think. You can also compile it yourself easily.
 
