@@ -148,7 +148,7 @@
 				NathanLinkedList* _lastGet = getLinkedList(_multiList,i+1);
 				if (_lastGet->memory!=NULL){
 					// Is one based, so minus one.
-					_selectedList[(int)*(_lastGet->memory)-1]=1;
+					_selectedList[(int)*((int*)_lastGet->memory)-1]=1;
 				}
 			}
 		}
@@ -241,8 +241,8 @@
 					for (i=0;i<_listSize;i++){
 						if (_selectedList[i]==1){
 							NathanLinkedList* _lastAddedEntry = addToLinkedList(_multiList);
-							_lastAddedEntry->memory = calloc(1,sizeof(int*));
-							*(_lastAddedEntry->memory)=i+1;
+							_lastAddedEntry->memory = calloc(1,sizeof(int));
+							*((int*)_lastAddedEntry->memory)=(int)(i+1);
 						}
 					}
  					_valueToReturn = (intptr_t)(_multiList);

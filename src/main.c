@@ -1,7 +1,7 @@
 // TODO - Include everything that my 3ds one had.
 // TODO - More site support. I made a list.
 	// Please fix nh before, though.
-#define VERSION 1
+#define VERSION 2
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -14,6 +14,7 @@
 #define MAXFILES 200
 
 #define TEMPDEBUGMODE 0
+#define FORCEDOWNLOADMODE 1
 
 #define FILETYPE_JPG 1
 #define FILETYPE_PNG 2
@@ -181,7 +182,8 @@ void init(){
 
 signed char mainMenuSelection(){
 	char* _tempList[3];
-	_tempList[0]="Read";
+	//_tempList[0]="Read";
+	_tempList[0]="Do nothing";
 	_tempList[1]="Download";
 	_tempList[2]="Exit";
 	return showList(_tempList, 3, 0, NULL)-1;
@@ -191,8 +193,12 @@ int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();
 
-	while (1){
-		signed char _lastMainMenuSelectioin = mainMenuSelection();
+	//while (1){
+		#if FORCEDOWNLOADMODE==1
+			signed char _lastMainMenuSelectioin=1;
+		#else
+			signed char _lastMainMenuSelectioin = mainMenuSelection();
+		#endif
 		if (_lastMainMenuSelectioin==0){ // Main read
 
 		}else if (_lastMainMenuSelectioin==1){ // Download
@@ -216,7 +222,7 @@ int main(int argc, char *argv[]){
 		}else{ // The exit option and if the user cancels
 			return 0;
 		}
-	}
+	//}
 
 	
 	return 0;

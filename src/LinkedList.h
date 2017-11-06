@@ -2,7 +2,7 @@
 #define NATHANLINKEDLISTHEADER
 
 	typedef struct NathanLinkedList_t{
-		char* memory;
+		void* memory;
 		struct NathanLinkedList_t* nextEntry;
 	}NathanLinkedList;
 

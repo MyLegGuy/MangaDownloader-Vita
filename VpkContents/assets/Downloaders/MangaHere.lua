@@ -1,5 +1,4 @@
--- Started 10/27/17
-
+-- Started 10/27/17. Done 10/28/17
 
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
@@ -151,6 +150,12 @@ function getChapterTotalPages(_tempDownloadedHTML)
 	</select>
 	<a href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/29.html" class="next_page"></a>]]
 	local _firstFound = string.find(_tempDownloadedHTML,"wid60",1,true);
+	if (_firstFound==nil) then
+		if (string.find(_tempDownloadedHTML,"has been licensed. It's not available in MangaHere",1,true)~=nil) then
+			popupMessage("The series has been licensed and isn't available on MangaHere. Sorry.");
+			return nil;
+		end
+	end
 	local _endIndex = string.find(_tempDownloadedHTML,"href=",_firstFound+1,true);
 	local i=0;
 	while (true) do
@@ -160,7 +165,8 @@ function getChapterTotalPages(_tempDownloadedHTML)
 		end
 		i=i+1;
 	end
-	return i;
+	-- 11/6/17 - Return i-1 because they added advertisements at the end.
+	return i-1;
 end
 
 function getMangaFilepaths(_seriesUrl, _chapterName)
@@ -177,6 +183,9 @@ function doChapter(_passedChapterUrl, _passedStatusPrefix, _passedDownloadDirect
 	local _currentDownloadedHTML = downloadString(_passedChapterUrl);
 	goodShowStatus(_passedStatusPrefix .. "Parsing number of pages...");
 	local _totalPagesToDownload = getChapterTotalPages(_currentDownloadedHTML);
+	if (_totalPagesToDownload==nil) then
+		return nil;
+	end
 	for i=1,_totalPagesToDownload do
 		-- We already downloaded the first page's HTML
 		if (i~=1) then
@@ -184,10 +193,11 @@ function doChapter(_passedChapterUrl, _passedStatusPrefix, _passedDownloadDirect
 			_currentDownloadedHTML = downloadString(_passedChapterUrl .. i .. ".html");
 		end
 		local _imageUrl = getWebpagesImageRaw(_currentDownloadedHTML);
-		goodShowStatus("Downloading page" .. i .. "/" .. _totalPagesToDownload)
+		goodShowStatus(_passedStatusPrefix .. "Downloading page " .. i .. "/" .. _totalPagesToDownload)
 		downloadFile(_imageUrl,_passedDownloadDirectory .. string.format("%03d",i) .. ".jpg")
 		goodJustDownloaded()
 	end
+	return 1;
 end
 
 function doChapterBroad(_seriesUrl, _chapterUrl, _chapterName, _statusPrefix)
@@ -197,7 +207,7 @@ function doChapterBroad(_seriesUrl, _chapterUrl, _chapterName, _statusPrefix)
 	createDirectory(_mangaChapterFolder);
 
 	--makeFolderFriendly
-	doChapter(fixUrl(_chapterUrl),_statusPrefix,_mangaChapterFolder)
+	return doChapter(fixUrl(_chapterUrl),_statusPrefix,_mangaChapterFolder);
 end
 
 function InitList02(isFirstTime)
@@ -211,11 +221,14 @@ function MyLegGuy_Download()
 	print("Download here.")
 	
 	for i=1,#userInput02 do
-		doChapterBroad(_currentSeriesUrl,currentMangaChapterUrlList[userInput02[i]],currentMangaChapterNameList[userInput02[i]], i .. "/" .. #userInput02)
+		if (doChapterBroad(_currentSeriesUrl,currentMangaChapterUrlList[userInput02[i]],currentMangaChapterNameList[userInput02[i]], i .. "/" .. #userInput02 .. "\n")==nil) then
+			break;
+		end
 	end
 	setDoneDownloading()
 end
 function MyLegGuy_Prompt()
+	popupMessage("Support for this site is not great. Downloading does work, but Vitashell has trouble loading the downloaded images properly, so you can't even view them.");
 	disableSSLVerification();
 	
 	--local name, url = getChapterList("www.mangahere.co/manga/15_sai_asagi_ryuu/")
@@ -226,9 +239,6 @@ function MyLegGuy_Prompt()
 	--doChapterBroad("www.mangahere.co/manga/15_sai_asagi_ryuu/",url[2],name[2],"test good stuff\n");
 	
 	--http://www.mangahere.co/manga/15_sai_asagi_ryuu/c001/3.html
-	
-
-
 	getMangaList();
 	--happy = loadImageFromUrl("https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",FILETYPE_PNG)
 	--photoViewer(happy)
@@ -254,8 +264,6 @@ function MyLegGuy_Prompt()
 		local _currentChapterName = currentMangaChapterNameList[userInput02];
 		local _currentChapterUrl = currentMangaChapterUrlList[userInput02];
 		_,_asIgoFolder=getMangaFilepaths(_currentSeriesUrl,_currentChapterName);
-		print("Setting ")
-		print(_asIgoFolder)
 	end
 	-- Change this into an array to work like multi
 	if (isAsIGo==true) then
@@ -266,6 +274,4 @@ function MyLegGuy_Prompt()
 
 	currentMangaUrlList = nil; -- These huge lists aren't needed anymore.
 	currentMangaNameList = nil;
-	
-	
 end
