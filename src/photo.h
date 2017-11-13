@@ -23,12 +23,13 @@
 #ifndef __PHOTO_H__
 #define __PHOTO_H__
 
+#if RENDERER == REND_SDL
 #if PLATFORM == PLAT_COMPUTER
-
 void sceKernelDelayThread(int _noob){
 	FpsCapStart();
 	FpsCapWait();
 }
+#endif
 
 void readPad(){
 	controlsStart();
@@ -37,15 +38,13 @@ void readPad(){
 
 // My code
 #include "photoExtended.h"
-
-void photoViewer(CrossTexture* _passedTexture){
+void photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
-	char* _currentRelativeFilename;
+	//char* _currentRelativeFilename;
 	if (_isSingleImageMode==1){
 		tex=_passedTexture;
 	}else{
-		_currentRelativeFilename=NULL;
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			printf("failed to load.\n");
@@ -80,8 +79,7 @@ void photoViewer(CrossTexture* _passedTexture){
 }
 
 
-#endif
-#if PLATFORM == PLAT_VITA
+#elif RENDERER == REND_VITA2D
 
 
 #define ALIGN_CENTER(a, b) (((a)-(b)) / 2)
@@ -286,27 +284,30 @@ void readPad() {
 	}
 }
 
-void photoViewer(CrossTexture* _singleTexture) {
+void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
 	char _isSingleImageMode = _singleTexture!=NULL;
-	char *buffer = malloc(BIG_BUFFER_SIZE);
-	if (!buffer)
-		return;
+	//char *buffer = malloc(BIG_BUFFER_SIZE);
+	//if (!buffer){
+	//	WriteToDebugFile("Failed to allocate");
+	//	return;
+	//}
 
 	vita2d_texture* tex=NULL;
-	char* _currentRelativeFilename=NULL;
 	if (_isSingleImageMode==1){
 		tex=_singleTexture;
 	}else{
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+		WriteToDebugFile("load result:");
+		WriteIntToDebugFile(_initialLoadResult);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
-			free(buffer);
+			//free(buffer);
 			return;
 		}	
 	}
 	if (!tex) {
-		free(buffer);
+		//free(buffer);
 		return;
 	}
 
@@ -320,24 +321,20 @@ void photoViewer(CrossTexture* _singleTexture) {
 
 	while (1) {
 		readPad();
-
 		// Cancel
 		if (pressed_buttons & SCE_CTRL_CIRCLE) {
 			break;
 		}
-
 		// Rotate
 		if (pressed_buttons & SCE_CTRL_LTRIGGER) {
 			rad -= M_PI_2;
 			if (rad < 0)
 				rad += M_TWOPI;
-
 			photoMode(&zoom, width, height, rad, mode);
 		} else if (pressed_buttons & SCE_CTRL_RTRIGGER) {
 			rad += M_PI_2;
 			if (rad >= M_TWOPI)
 				rad -= M_TWOPI;
-
 			photoMode(&zoom, width, height, rad, mode);
 		}
 		int horizontal = isHorizontal(rad);
@@ -356,8 +353,7 @@ void photoViewer(CrossTexture* _singleTexture) {
 			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
-				free(buffer);
-				return;
+				break;
 			}
 		}
 
@@ -446,9 +442,6 @@ void photoViewer(CrossTexture* _singleTexture) {
 	}
 
 	freeTexture(tex);
-
-	free(buffer);
-
 	return;
 }
 

@@ -1,11 +1,10 @@
 #ifndef NATHANLINKEDLISTHEADER
 #define NATHANLINKEDLISTHEADER
-
+	#include <stdlib.h>
 	typedef struct NathanLinkedList_t{
 		void* memory;
 		struct NathanLinkedList_t* nextEntry;
 	}NathanLinkedList;
-
 	// 1 based
 	NathanLinkedList* getLinkedList(NathanLinkedList* _startingList,int num){
 		NathanLinkedList* listOn = _startingList;
@@ -42,17 +41,32 @@
 			return tempList;
 		}
 	}
-	void freeLinkedList(NathanLinkedList* _startingList){
+	#define freeLinkedList(x) freeLinkedListSpecific(x,1)
+	void freeLinkedListSpecific(NathanLinkedList* _startingList, char _shouldFreeMemory){
 		int i;
 		NathanLinkedList* _currentListToFree = _startingList;
 		NathanLinkedList* _nextListToFree = _startingList;
 		int _cachedListLength = getLinkedListLength(_startingList);
 		for (i=0;i<_cachedListLength;i++){
-			free(_currentListToFree->memory);
+			if (_shouldFreeMemory){
+				free(_currentListToFree->memory);
+			}
 			_nextListToFree = _currentListToFree->nextEntry;
 			free(_currentListToFree);
 			_currentListToFree = _nextListToFree;
 		}
 	}
-
+	void** linkedListToArray(NathanLinkedList* _passedList){
+		int _passedListLength = getLinkedListLength(_passedList);
+		void** _returnArray = calloc(1,sizeof(void*)*_passedListLength);
+		int i;
+		for (i=0;i<_passedListLength;i++){
+			_returnArray[i] = _passedList->memory;
+			if (_passedList->nextEntry){
+				_passedList = _passedList->nextEntry;
+			}
+		}
+		freeLinkedListSpecific(_passedList,0);
+		return _returnArray;
+	}
 #endif

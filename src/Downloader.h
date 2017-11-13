@@ -591,11 +591,11 @@
 			pthread_t _myThreadThing;
 			pthread_create(&(_myThreadThing), NULL, &startDownload, NULL);
 			
-			popupMessage("Waiting for first page...\nThe only acceptable way to wait is coldly.",0,0);
+			popupMessage("Waiting for first page...The only acceptable way to wait is coldly.",0,0);
 			while (needUpdateFileListing==-1){
 				sceKernelDelayThread(500000);
 			}
-			photoViewer(NULL);
+			photoViewer(NULL,NULL);
 		}
 
 		// Clean the leftovers
@@ -1095,7 +1095,7 @@
 		return 1;
 	}
 	int L_photoViewer(lua_State* passedState){
-		photoViewer((CrossTexture*)lua_touserdata(passedState,1));
+		photoViewer((CrossTexture*)lua_touserdata(passedState,1),NULL);
 		return 0;
 	}
 	int L_freeTexture(lua_State* passedState){

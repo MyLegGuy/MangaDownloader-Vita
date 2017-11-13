@@ -1,6 +1,6 @@
 You need...
 
-* Curl, OpenSSL.\n
+* Curl, OpenSSL.
 	You can get these precompiled from [vdpm](https://github.com/vitasdk/vdpm).
 * [Lua](https://www.lua.org/download.html).
 	You will need to compile this yourself. Put header files in \<Header file root directory\>/Lua/

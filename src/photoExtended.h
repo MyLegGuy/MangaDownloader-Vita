@@ -7,7 +7,7 @@
 #include <Lua/lauxlib.h>
 
 volatile signed char needUpdateFileListing=-1;
-volatile unsigned short totalDownloadedFiles=0;
+volatile signed short totalDownloadedFiles=0;
 volatile unsigned char isDoneDownloading=0;
 char* currentDownloadReaderDirectory=NULL;
 
@@ -31,16 +31,8 @@ int L_setMangaDoneDownloading(lua_State* passedState){
 #define LOADNEW_LOADEDNEW 1
 #define LOADNEW_DIDNTLOAD 2
 #define LOADNEW_FINISHEDMANGA 3
-// Doesn't actually get extention. Just returns last few characters of string.
-char* getFileExtention(char* _filename, int _extentionLength){
-	if (strlen(_filename)<_extentionLength){
-		return _filename;
-	}
-	return &(_filename[strlen(_filename)-_extentionLength]);
-}
 // Called by image viewing thread
 int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
-	int i, j;
 	if (needUpdateFileListing){
 		_mangaDirectoryLength=0;
 		needUpdateFileListing=0;
@@ -64,27 +56,16 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		if (_mangaDirectoryLength==0){
 			return LOADNEW_DIDNTLOAD;
 		}
-		// Alphabetize
-		for (i = 0; i < _mangaDirectoryLength-1 ; i++){ // minus one because no need to check last file
-			for (j = i; j < _mangaDirectoryLength; j++){
-				if (strcmp(_mangaDirectoryFilenames[i], _mangaDirectoryFilenames[j]) > 0){ // Move up next one if less than this one
-					char* _tempBuffer = malloc(strlen(_mangaDirectoryFilenames[i]+1));
-					strcpy(_tempBuffer, _mangaDirectoryFilenames[i]);
-					free(_mangaDirectoryFilenames[i]);
-					_mangaDirectoryFilenames[i] = malloc(strlen(_mangaDirectoryFilenames[j])+1);
-					strcpy(_mangaDirectoryFilenames[i],_mangaDirectoryFilenames[j]);
-					free(_mangaDirectoryFilenames[j]);
-					_mangaDirectoryFilenames[j] = _tempBuffer;
-				}
-			}
-		}
+		alphabetizeList(_mangaDirectoryFilenames,_mangaDirectoryLength);
 	}
 
-	if (totalDownloadedFiles>_mangaDirectoryLength){
-		popupMessage("This...is so Rong.\nBy that, I mean there are less files than there should be.",1,0);
-		return LOADNEW_RETURNEDSAME;
+	if (totalDownloadedFiles!=-1){
+		if (totalDownloadedFiles>_mangaDirectoryLength){
+			popupMessage("This...is so Rong. By that, I mean there are less files than there should be.",1,0);
+			return LOADNEW_RETURNEDSAME;
+		}
+		_mangaDirectoryLength=totalDownloadedFiles;
 	}
-	_mangaDirectoryLength=totalDownloadedFiles;
 
 	int _startIndex=0;
 	if (*_currentRelativeFilename!=NULL){
@@ -101,14 +82,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	}
 	if (_startIndex>=_mangaDirectoryLength){
 		if (isDoneDownloading==1){
-			if (*_toStorePage!=NULL){
-				freeTexture(*_toStorePage);
-				*_toStorePage=NULL;
-			}
-			if (*_currentRelativeFilename!=NULL){
-				free(*_currentRelativeFilename);
-				*_currentRelativeFilename=NULL;
-			}
 			return LOADNEW_FINISHEDMANGA;
 		}
 		popupMessage("Waiting for the next page.\nYou may go to the previous page if you wish.",0,0);
@@ -132,7 +105,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	char* _tempPathFixBuffer = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+strlen(currentDownloadReaderDirectory)+1);
 	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
 	strcat(_tempPathFixBuffer,_mangaDirectoryFilenames[_startIndex]);
-	//WriteToDebugFile(_tempPathFixBuffer);
 	if (strcmp(getFileExtention(_tempPathFixBuffer,3),"jpg")==0){
 		if (*_toStorePage!=NULL){
 			freeTexture(*_toStorePage);

@@ -1,6 +1,7 @@
 // TODO - Include everything that my 3ds one had.
 // TODO - More site support. I made a list.
-	// Please fix nh before, though.
+// TODO - Option to use uma0.
+// TODO - Allow backADirectory to go back to ux0. Treat : as a slash because neither can be in file or folder names.
 #define VERSION 2
 
 #include <stdio.h>
@@ -10,11 +11,14 @@
 #include <pthread.h>
 // main.h
 	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
+	char* getFileExtention(char* _filename, int _extentionLength);
+	void WriteIntToDebugFile(int a);
+	void alphabetizeList(char** _passedList,int _totalFileListLength);
 // Max number of downloader scripts and pages in manga reader.
-#define MAXFILES 200
+#define MAXFILES 255
 
 #define TEMPDEBUGMODE 0
-#define FORCEDOWNLOADMODE 1
+#define FORCEDOWNLOADMODE 0
 
 #define FILETYPE_JPG 1
 #define FILETYPE_PNG 2
@@ -161,10 +165,43 @@ void WriteIntToDebugFile(int a){
 		printf("Write: %d\n",a);
 	#endif
 }
+// Doesn't actually get extention. Just returns last few characters of string.
+char* getFileExtention(char* _filename, int _extentionLength){
+	if (strlen(_filename)<_extentionLength){
+		return _filename;
+	}
+	return &(_filename[strlen(_filename)-_extentionLength]);
+}
+// Must be a malloc'd list
+void alphabetizeList(char** _passedList,int _totalFileListLength){
+	int i,j;
+	for (i = 0; i < _totalFileListLength-1 ; i++){ // minus one because no need to check last file
+		for (j = i; j < _totalFileListLength; j++){
+			if (strcmp(_passedList[i], _passedList[j]) > 0){ // Move up next one if less than this one
+				char* _tempBuffer = malloc(strlen(_passedList[i])+1);
+				strcpy(_tempBuffer, _passedList[i]);
+				free(_passedList[i]);
+				_passedList[i] = malloc(strlen(_passedList[j])+1);
+				strcpy(_passedList[i],_passedList[j]);
+				free(_passedList[j]);
+				_passedList[j] = _tempBuffer;
+			}
+		}
+	}
+}
+
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
 	initGraphics(640,480, &screenWidth, &screenHeight);
+	// Is file are do exist?
+	#if PLATFORM == PLAT_VITA
+		if (checkFileExist("app0:assets/LiberationSans-Regular.ttf")==0){
+			loadFont("sa0:data/font/pvf/ltn0.pvf");
+			currentTextHeight = textHeight(fontSize);
+			popupMessage("Missing font file. Did you remember to put contents of VpkContents folder into VPK?",1,0);
+		}
+	#endif
 	// Text
 	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
 	loadFont(tempPathFixBuffer);
@@ -173,34 +210,142 @@ void init(){
 	// Make data folder
 	fixPath("",tempPathFixBuffer,TYPE_DATA);
 	createDirectory(tempPathFixBuffer);
-
 	#if PLATFORM == PLAT_VITA
 		// Magic fix for joysticks
 		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
 	#endif
 }
-
 signed char mainMenuSelection(){
 	char* _tempList[3];
-	//_tempList[0]="Read";
-	_tempList[0]="Do nothing";
+	_tempList[0]="Read";
+	//_tempList[0]="Do nothing";
 	_tempList[1]="Download";
 	_tempList[2]="Exit";
 	return showList(_tempList, 3, 0, NULL)-1;
 }
+char** getDirectory(char* _path, int* _lengthStorage){
+	NathanLinkedList* _foundFileList = calloc(1,sizeof(NathanLinkedList));
+	int i, j;
+	// Select download script
+	CROSSDIR dir;
+	CROSSDIRSTORAGE lastStorage;
+	dir = openDirectory (_path);
+	if (dirOpenWorked(dir)==0){
+		popupMessage("Failed to open directory.",1,0);
+		return NULL;
+	}
+	int _totalFileListLength=0;
+	for (i=0;;i++){
+		if (directoryRead(&dir,&lastStorage) == 0){
+			break;
+		}
+		NathanLinkedList* _currentListEntry = addToLinkedList(_foundFileList);
+		_currentListEntry->memory = malloc(strlen(getDirectoryResultName(&lastStorage))+1);
+		strcpy(_currentListEntry->memory,getDirectoryResultName(&lastStorage));
+		_totalFileListLength++;
+	}
+	directoryClose (dir);
+	if (_totalFileListLength==0){
+		return NULL;
+	}
+	char** _directoryFilenameList = (char**)linkedListToArray(_foundFileList);
+	alphabetizeList(_directoryFilenameList,_totalFileListLength);
+	if (_lengthStorage!=NULL){
+		*_lengthStorage=_totalFileListLength;
+	}
+	return _directoryFilenameList;
+}
+// realloc, but new memory is zeroed out
+void* recalloc(void* _oldBuffer, int _newSize, int _oldSize){
+	void* _newBuffer = realloc(_oldBuffer,_newSize);
+	if (_newSize > _oldSize){
+		void* _startOfNewData = ((char*)_newBuffer)+_oldSize;
+		memset(_startOfNewData,0,_newSize-_oldSize);
+	}
+	return _newBuffer;
+}
+void freeMallocdArray(void** _array, int _arrayLength){
+	int i;
+	for (i=0;i<_arrayLength;i++){
+		free(_array[i]);
+	}
+	free(_array);
+}
+// /a/b/c/
+// /a/b/a.png
+// both will go to
+// /a/b/
+char* backADirectory(char* _filepath){
+	int i;
+	for (i=strlen(_filepath)-2;i>0;i--){ // Start at length minus two because we don't want to detect a slash that's the last character
+		if (_filepath[i]==47){
+			int j;
+			int _cachedStringLength = strlen(_filepath);
+			for (j=i+1;j!=_cachedStringLength;j++){
+				_filepath[j]=0;
+			}
+			break;
+		}
+	}
+	return _filepath;
+}
 
+void mainRead(char* _startingDirectory){
+	char* _currentDirectoryPath = malloc(strlen(_startingDirectory)+1);
+	strcpy(_currentDirectoryPath,_startingDirectory);
+	while(1){
+		int _currentDirectoryLength;
+		char** _currentDirectoryListing = getDirectory(_currentDirectoryPath,&_currentDirectoryLength);
+		if (_currentDirectoryListing==NULL){
+			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
+			continue;
+		}
+		signed int _tempUserChoice = showList(_currentDirectoryListing,_currentDirectoryLength,0,NULL)-1;
+		if (_tempUserChoice==-2){ // Normally -1, but we subtracted 1.
+			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
+			continue;
+		}
+		_currentDirectoryPath = recalloc(_currentDirectoryPath,strlen(_currentDirectoryPath)+1+strlen(_currentDirectoryListing[_tempUserChoice])+1,strlen(_currentDirectoryPath)+1);
+		strcat(_currentDirectoryPath,_currentDirectoryListing[_tempUserChoice]);
+		
+		// Test if single image
+		char* _newFileExtention = getFileExtention(_currentDirectoryPath,3);
+		if (strcmp(_newFileExtention,"png")==0 || strcmp(_newFileExtention,"jpg")==0){
+			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
+			currentDownloadReaderDirectory = _currentDirectoryPath;
+			isDoneDownloading=1;
+			needUpdateFileListing=1;
+			totalDownloadedFiles=-1;
+			char* _tempArgument = malloc(strlen(_currentDirectoryListing[_tempUserChoice])+1);
+			strcpy(_tempArgument,_currentDirectoryListing[_tempUserChoice]);
+			photoViewer(NULL,_tempArgument);
+			free(_tempArgument);
+		}else{
+			strcat(_currentDirectoryPath,"/");
+		}
+		freeMallocdArray((void**)_currentDirectoryListing,_currentDirectoryLength);
+	}
+	return;
+	currentDownloadReaderDirectory = "./Manga/yuyushiki/Yuyushiki 4/";
+	isDoneDownloading=1;
+	needUpdateFileListing=1;
+	totalDownloadedFiles=-1;
+	photoViewer(NULL,NULL);
+}
 int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();
-
-	//while (1){
+	while (1){
 		#if FORCEDOWNLOADMODE==1
 			signed char _lastMainMenuSelectioin=1;
 		#else
 			signed char _lastMainMenuSelectioin = mainMenuSelection();
 		#endif
 		if (_lastMainMenuSelectioin==0){ // Main read
-
+			fixPath("",tempPathFixBuffer,TYPE_DATA);
+			char* _tempArgument = malloc(strlen(tempPathFixBuffer)+1);
+			strcpy(_tempArgument,tempPathFixBuffer); // Be safe. Don't want tempPathFixBuffer to be changed while we're using it.
+			mainRead(_tempArgument);
 		}else if (_lastMainMenuSelectioin==1){ // Download
 			#if TEMPDEBUGMODE == 0
 				char* _noobList[2];
@@ -222,8 +367,6 @@ int main(int argc, char *argv[]){
 		}else{ // The exit option and if the user cancels
 			return 0;
 		}
-	//}
-
-	
+	}
 	return 0;
 }
