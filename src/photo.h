@@ -283,8 +283,14 @@ void readPad() {
 		hold2_n = 0;
 	}
 }
-
+// No need to free a texture afterwards if you pass one to it.
+// _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
 void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
+	// Don't want to touch a buffer I don't know about.
+	char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
+	strcpy(_tempSafeSpace,_currentRelativeFilename);
+	_currentRelativeFilename = _tempSafeSpace;
+
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
 	char _isSingleImageMode = _singleTexture!=NULL;
@@ -294,8 +300,6 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		tex=_singleTexture;
 	}else{
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
-		WriteToDebugFile("load result:");
-		WriteIntToDebugFile(_initialLoadResult);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			return;
 		}	
@@ -346,7 +350,8 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
-				break;
+				// If you just finished the manga, the image was freed. Don't break, just return.
+				return;
 			}
 		}
 
@@ -354,7 +359,6 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		if (pressed_buttons & SCE_CTRL_CROSS) {
 			x = width / 2.0f;
 			y = height / 2.0f;
-
 			// Find next mode
 			mode = getNextZoomMode(&zoom, width, height, rad, mode);
 		}
@@ -433,7 +437,7 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		// End drawing
 		endDrawing();
 	}
-
+	// If the user presses B, they're down here.
 	freeTexture(tex);
 	return;
 }

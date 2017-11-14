@@ -59,7 +59,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		}
 		alphabetizeList(_mangaDirectoryFilenames,_mangaDirectoryLength);
 	}
-
 	if (totalDownloadedFiles!=-1){
 		if (totalDownloadedFiles>_mangaDirectoryLength){
 			popupMessage("This...is so Rong. By that, I mean there are less files than there should be.",1,0);
@@ -67,7 +66,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		}
 		_mangaDirectoryLength=totalDownloadedFiles;
 	}
-
 	int _startIndex=0;
 	if (*_currentRelativeFilename!=NULL){
 		for (i=0;i<_mangaDirectoryLength;i++){
@@ -102,27 +100,18 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		}
 		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset);
 	}
-
+	if (*_toStorePage!=NULL){
+		freeTexture(*_toStorePage);
+		*_toStorePage=NULL;
+	}
 	char* _tempPathFixBuffer = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+strlen(currentDownloadReaderDirectory)+1);
 	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
 	strcat(_tempPathFixBuffer,_mangaDirectoryFilenames[_startIndex]);
 	if (strcmp(getFileExtention(_tempPathFixBuffer,3),"jpg")==0){
-		if (*_toStorePage!=NULL){
-			freeTexture(*_toStorePage);
-			*_toStorePage=NULL;
-		}
 		*_toStorePage = loadJPG(_tempPathFixBuffer);
 	}else if (strcmp(getFileExtention(_tempPathFixBuffer,3),"png")==0){
-		if (*_toStorePage!=NULL){
-			freeTexture(*_toStorePage);
-			*_toStorePage=NULL;
-		}
 		*_toStorePage = loadPNG(_tempPathFixBuffer);
 	}else{
-		//popupMessage("Unknwon filetype.",1,0);
-		//popupMessage(getFileExtention(_tempPathFixBuffer,3),1,0);
-		//return LOADNEW_RETURNEDSAME;
-		printf("Skip.\n");
 		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset+1);
 	}
 	free(_tempPathFixBuffer);
@@ -131,7 +120,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	}
 	*_currentRelativeFilename = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+1);
 	strcpy(*_currentRelativeFilename,_mangaDirectoryFilenames[_startIndex]);
-	//return _mangaDirectoryFilenames[_userChosenFileIndex-1];
 	return LOADNEW_LOADEDNEW;
 }
 //////

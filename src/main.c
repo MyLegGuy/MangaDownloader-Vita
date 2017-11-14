@@ -46,7 +46,7 @@ int screenWidth;
 int cursorWidth;
 #include "photo.h"
 #include "Downloader.h"
-
+char* dataFolderRoot;
 /////////////////////////////////////////////////////////
 char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	controlsEnd();
@@ -195,31 +195,6 @@ void alphabetizeList(char** _passedList,int _totalFileListLength){
 		}
 	}
 }
-/////////////////////////////////////////////////////////
-void init(){
-	ClearDebugFile();
-	initGraphics(640,480, &screenWidth, &screenHeight);
-	// Is file are do exist?
-	#if PLATFORM == PLAT_VITA
-		if (checkFileExist("app0:assets/LiberationSans-Regular.ttf")==0){
-			loadFont("sa0:data/font/pvf/ltn0.pvf");
-			currentTextHeight = textHeight(fontSize);
-			popupMessage("Missing font file. Did you remember to put contents of VpkContents folder into VPK?",1,0);
-		}
-	#endif
-	// Text
-	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
-	loadFont(tempPathFixBuffer);
-	currentTextHeight = textHeight(fontSize);
-	cursorWidth = textWidth(fontSize,">");
-	// Make data folder
-	fixPath("",tempPathFixBuffer,TYPE_DATA);
-	createDirectory(tempPathFixBuffer);
-	#if PLATFORM == PLAT_VITA
-		// Magic fix for joysticks
-		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
-	#endif
-}
 signed char mainMenuSelection(){
 	char* _tempList[3];
 	_tempList[0]="Read";
@@ -298,6 +273,36 @@ char* backADirectory(char* _filepath){
 	}
 	return _filepath;
 }
+char stringStartsWith(char* _bigString, char* _shortString){
+	return strncmp(_bigString, _shortString, strlen(_shortString))==0;
+}
+/////////////////////////////////////////////////////////
+void init(){
+	ClearDebugFile();
+	initGraphics(640,480, &screenWidth, &screenHeight);
+	// Is file are do exist?
+	#if PLATFORM == PLAT_VITA
+		if (checkFileExist("app0:assets/LiberationSans-Regular.ttf")==0){
+			loadFont("sa0:data/font/pvf/ltn0.pvf");
+			currentTextHeight = textHeight(fontSize);
+			popupMessage("Missing font file. Did you remember to put contents of VpkContents folder into VPK?",1,0);
+		}
+	#endif
+	// Text
+	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
+	loadFont(tempPathFixBuffer);
+	currentTextHeight = textHeight(fontSize);
+	cursorWidth = textWidth(fontSize,">");
+	// Make data folder
+	fixPath("",tempPathFixBuffer,TYPE_DATA);
+	createDirectory(tempPathFixBuffer);
+	dataFolderRoot = malloc(strlen(tempPathFixBuffer)+1);
+	strcpy(dataFolderRoot,tempPathFixBuffer);
+	#if PLATFORM == PLAT_VITA
+		// Magic fix for joysticks
+		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
+	#endif
+}
 void mainRead(char* _startingDirectory){
 	char* _currentDirectoryPath = malloc(strlen(_startingDirectory)+1);
 	strcpy(_currentDirectoryPath,_startingDirectory);
@@ -311,6 +316,9 @@ void mainRead(char* _startingDirectory){
 		signed int _tempUserChoice = showList(_currentDirectoryListing,_currentDirectoryLength,0,NULL)-1;
 		if (_tempUserChoice==-2){ // Normally -1, but we subtracted 1.
 			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
+			if (!stringStartsWith(_currentDirectoryPath,dataFolderRoot)){
+				break;
+			}
 			continue;
 		}
 		_currentDirectoryPath = recalloc(_currentDirectoryPath,strlen(_currentDirectoryPath)+1+strlen(_currentDirectoryListing[_tempUserChoice])+1,strlen(_currentDirectoryPath)+1);
@@ -333,12 +341,8 @@ void mainRead(char* _startingDirectory){
 		}
 		freeMallocdArray((void**)_currentDirectoryListing,_currentDirectoryLength);
 	}
+	free(_currentDirectoryPath);
 	return;
-	currentDownloadReaderDirectory = "./Manga/yuyushiki/Yuyushiki 4/";
-	isDoneDownloading=1;
-	needUpdateFileListing=1;
-	totalDownloadedFiles=-1;
-	photoViewer(NULL,NULL);
 }
 int main(int argc, char *argv[]){
 	init();
@@ -361,8 +365,8 @@ int main(int argc, char *argv[]){
 				_noobList[0] = "Download and wait";
 				_noobList[1] = "Download as I go";
 				signed char _isAsIGo = showList(_noobList, 2, 0, NULL)-1;
-				if (_isAsIGo==-1){
-					return 0;
+				if (_isAsIGo==-2){
+					continue;
 				}
 			#else
 				printf("Is temp debug mode.\n");
