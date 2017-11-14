@@ -288,11 +288,6 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
 	char _isSingleImageMode = _singleTexture!=NULL;
-	//char *buffer = malloc(BIG_BUFFER_SIZE);
-	//if (!buffer){
-	//	WriteToDebugFile("Failed to allocate");
-	//	return;
-	//}
 
 	vita2d_texture* tex=NULL;
 	if (_isSingleImageMode==1){
@@ -302,12 +297,10 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		WriteToDebugFile("load result:");
 		WriteIntToDebugFile(_initialLoadResult);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
-			//free(buffer);
 			return;
 		}	
 	}
 	if (!tex) {
-		//free(buffer);
 		return;
 	}
 

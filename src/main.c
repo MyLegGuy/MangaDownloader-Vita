@@ -1,8 +1,14 @@
-// TODO - Include everything that my 3ds one had.
-// TODO - More site support. I made a list.
-// TODO - Option to use uma0.
-// TODO - Allow backADirectory to go back to ux0. Treat : as a slash because neither can be in file or folder names.
-#define VERSION 2
+/*
+List ( in order of importance )
+TODO - Exit read mode if user exists data directory.
+TODO - Memorize last selected file
+	TODO - Make file for last selected entry in directory.
+		File will be called .lastSelection, contain the NAME of the last selected file, and only be created if the path begins with ux0/uma0:data/LUAMANGAS
+TODO - Option to use uma0.
+TODO - Include everything that my 3ds one had.
+TODO - More site support. I made a list.
+*/
+#define VERSION 3
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,6 +19,7 @@
 	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
 	char* getFileExtention(char* _filename, int _extentionLength);
 	void WriteIntToDebugFile(int a);
+	void WriteToDebugFile(const char* stuff);
 	void alphabetizeList(char** _passedList,int _totalFileListLength);
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 255
@@ -37,7 +44,6 @@ int currentTextHeight=0;
 int screenHeight;
 int screenWidth;
 int cursorWidth;
-void WriteToDebugFile(const char* stuff);
 #include "photo.h"
 #include "Downloader.h"
 
@@ -189,7 +195,6 @@ void alphabetizeList(char** _passedList,int _totalFileListLength){
 		}
 	}
 }
-
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
@@ -223,9 +228,10 @@ signed char mainMenuSelection(){
 	_tempList[2]="Exit";
 	return showList(_tempList, 3, 0, NULL)-1;
 }
+// excludes .lastSelection
 char** getDirectory(char* _path, int* _lengthStorage){
 	NathanLinkedList* _foundFileList = calloc(1,sizeof(NathanLinkedList));
-	int i, j;
+	int i;
 	// Select download script
 	CROSSDIR dir;
 	CROSSDIRSTORAGE lastStorage;
@@ -248,6 +254,9 @@ char** getDirectory(char* _path, int* _lengthStorage){
 	if (_totalFileListLength==0){
 		return NULL;
 	}
+	removeFromLinkedList(&_foundFileList,searchLinkedList(_foundFileList,".lastSelection"));
+	// Just in case one is removed.
+	_totalFileListLength = getLinkedListLength(_foundFileList);
 	char** _directoryFilenameList = (char**)linkedListToArray(_foundFileList);
 	alphabetizeList(_directoryFilenameList,_totalFileListLength);
 	if (_lengthStorage!=NULL){
@@ -278,7 +287,7 @@ void freeMallocdArray(void** _array, int _arrayLength){
 char* backADirectory(char* _filepath){
 	int i;
 	for (i=strlen(_filepath)-2;i>0;i--){ // Start at length minus two because we don't want to detect a slash that's the last character
-		if (_filepath[i]==47){
+		if (_filepath[i]==47 || _filepath[i]==58){
 			int j;
 			int _cachedStringLength = strlen(_filepath);
 			for (j=i+1;j!=_cachedStringLength;j++){
@@ -289,7 +298,6 @@ char* backADirectory(char* _filepath){
 	}
 	return _filepath;
 }
-
 void mainRead(char* _startingDirectory){
 	char* _currentDirectoryPath = malloc(strlen(_startingDirectory)+1);
 	strcpy(_currentDirectoryPath,_startingDirectory);
@@ -346,6 +354,7 @@ int main(int argc, char *argv[]){
 			char* _tempArgument = malloc(strlen(tempPathFixBuffer)+1);
 			strcpy(_tempArgument,tempPathFixBuffer); // Be safe. Don't want tempPathFixBuffer to be changed while we're using it.
 			mainRead(_tempArgument);
+			free(_tempArgument);
 		}else if (_lastMainMenuSelectioin==1){ // Download
 			#if TEMPDEBUGMODE == 0
 				char* _noobList[2];

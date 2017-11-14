@@ -1,3 +1,4 @@
+// This file only is public domain.
 #ifndef NATHANLINKEDLISTHEADER
 #define NATHANLINKEDLISTHEADER
 	#include <stdlib.h>
@@ -40,6 +41,52 @@
 			listOn->nextEntry=tempList;
 			return tempList;
 		}
+	}
+	void removeFromLinkedList(NathanLinkedList** _startingList, int _removeIndex){
+		int i;
+		NathanLinkedList* _lastList=NULL;
+		NathanLinkedList* _tempInterationList = *_startingList;
+		for(i=1;;i++){
+			if (i==_removeIndex){
+				if ((*_startingList)->nextEntry!=NULL){
+					if (_lastList!=NULL){
+						_lastList->nextEntry = (*_startingList)->nextEntry;
+						free((*_startingList)->memory);
+						free((*_startingList));
+					}else{ // is first entry
+						NathanLinkedList* _newFirstEntry = (*_startingList)->nextEntry;
+						free((*_startingList)->memory);
+						free((*_startingList));
+						(*_startingList) = _newFirstEntry;
+					}
+				}else{
+					printf("Can't delete only entry.\n");
+				}
+				break;
+			}
+			_lastList=(_tempInterationList);
+			if ((_tempInterationList)->nextEntry!=NULL){
+				(_tempInterationList) = ((_tempInterationList)->nextEntry);
+			}else{
+				break;
+			}
+		}
+		return;
+	}
+	// Returns index if found, returns 0 otherwise
+	int searchLinkedList(NathanLinkedList* _startingList, char* _searchTerm){
+		int i;
+		for(i=1;;i++){
+			if (strcmp(_startingList->memory,_searchTerm)==0){
+				return i;
+			}
+			if (_startingList->nextEntry!=NULL){
+				_startingList = (_startingList->nextEntry);
+			}else{
+				break;
+			}
+		}
+		return 0;
 	}
 	#define freeLinkedList(x) freeLinkedListSpecific(x,1)
 	void freeLinkedListSpecific(NathanLinkedList* _startingList, char _shouldFreeMemory){

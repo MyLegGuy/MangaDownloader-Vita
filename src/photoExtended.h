@@ -33,6 +33,7 @@ int L_setMangaDoneDownloading(lua_State* passedState){
 #define LOADNEW_FINISHEDMANGA 3
 // Called by image viewing thread
 int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
+	int i;
 	if (needUpdateFileListing){
 		_mangaDirectoryLength=0;
 		needUpdateFileListing=0;
@@ -118,9 +119,11 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 		}
 		*_toStorePage = loadPNG(_tempPathFixBuffer);
 	}else{
-		popupMessage("Unknwon filetype.",1,0);
-		popupMessage(getFileExtention(_tempPathFixBuffer,3),1,0);
-		return LOADNEW_RETURNEDSAME;
+		//popupMessage("Unknwon filetype.",1,0);
+		//popupMessage(getFileExtention(_tempPathFixBuffer,3),1,0);
+		//return LOADNEW_RETURNEDSAME;
+		printf("Skip.\n");
+		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset+1);
 	}
 	free(_tempPathFixBuffer);
 	if (*_currentRelativeFilename!=NULL){
@@ -129,9 +132,6 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	*_currentRelativeFilename = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+1);
 	strcpy(*_currentRelativeFilename,_mangaDirectoryFilenames[_startIndex]);
 	//return _mangaDirectoryFilenames[_userChosenFileIndex-1];
-	
-
-
 	return LOADNEW_LOADEDNEW;
 }
 //////
