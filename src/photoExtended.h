@@ -33,6 +33,7 @@ int L_setMangaDoneDownloading(lua_State* passedState){
 #define LOADNEW_FINISHEDMANGA 3
 // Called by image viewing thread
 int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
+	popupMessage("Loading...",0,0);
 	int i;
 	if (needUpdateFileListing){
 		_mangaDirectoryLength=0;

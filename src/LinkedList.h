@@ -50,9 +50,9 @@
 			if (i==_removeIndex){
 				if ((*_startingList)->nextEntry!=NULL){
 					if (_lastList!=NULL){
-						_lastList->nextEntry = (*_startingList)->nextEntry;
-						free((*_startingList)->memory);
-						free((*_startingList));
+						_lastList->nextEntry = (_tempInterationList)->nextEntry;
+						free((_tempInterationList)->memory);
+						free((_tempInterationList));
 					}else{ // is first entry
 						NathanLinkedList* _newFirstEntry = (*_startingList)->nextEntry;
 						free((*_startingList)->memory);

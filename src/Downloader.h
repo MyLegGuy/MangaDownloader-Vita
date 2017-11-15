@@ -595,7 +595,10 @@
 			while (needUpdateFileListing==-1){
 				sceKernelDelayThread(500000);
 			}
-			photoViewer(NULL,NULL);
+			char* _tempReturned = photoViewer(NULL,NULL);
+			if (_tempReturned){
+				free(_tempReturned);
+			}
 		}
 
 		// Clean the leftovers
@@ -1095,7 +1098,10 @@
 		return 1;
 	}
 	int L_photoViewer(lua_State* passedState){
-		photoViewer((CrossTexture*)lua_touserdata(passedState,1),NULL);
+		char* _tempReturned = photoViewer((CrossTexture*)lua_touserdata(passedState,1),NULL);
+		if (_tempReturned){
+			free(_tempReturned);
+		}
 		return 0;
 	}
 	int L_freeTexture(lua_State* passedState){

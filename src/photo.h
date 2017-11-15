@@ -38,7 +38,10 @@ void readPad(){
 
 // My code
 #include "photoExtended.h"
-void photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
+char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
+	char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
+	strcpy(_tempSafeSpace,_currentRelativeFilename);
+	_currentRelativeFilename = _tempSafeSpace;
 	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
 	//char* _currentRelativeFilename;
@@ -48,7 +51,7 @@ void photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			printf("failed to load.\n");
-			return;
+			return NULL;
 		}
 	}
 	while (1){
@@ -65,17 +68,17 @@ void photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
-				printf("Done with manga.\n");
-				return;
+				break;
 			}
 		}
 		if (wasJustPressed(SCE_CTRL_CIRCLE)){
-			freeTexture(tex);
 			break;
 		}
 		controlsEnd();
 		FpsCapWait();
 	}
+	freeTexture(tex);
+	return (_currentRelativeFilename);
 }
 
 
@@ -285,7 +288,7 @@ void readPad() {
 }
 // No need to free a texture afterwards if you pass one to it.
 // _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
-void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
+char* photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 	// Don't want to touch a buffer I don't know about.
 	char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
 	strcpy(_tempSafeSpace,_currentRelativeFilename);
@@ -301,11 +304,11 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 	}else{
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
-			return;
+			return NULL;
 		}	
 	}
 	if (!tex) {
-		return;
+		return NULL;
 	}
 
 	// Variables
@@ -335,7 +338,6 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 			photoMode(&zoom, width, height, rad, mode);
 		}
 		int horizontal = isHorizontal(rad);
-
 		// Previous/next image.
 		//if ((horizontal==0 && ((pressed_buttons & SCE_CTRL_LEFT) || (pressed_buttons & SCE_CTRL_RIGHT))) || (horizontal==0 && (pressed_buttons & SCE_CTRL_UP || pressed_buttons & SCE_CTRL_DOWN))) {
 		if ((horizontal==1 && ((pressed_buttons & SCE_CTRL_RIGHT) || (pressed_buttons & SCE_CTRL_LEFT))) || (horizontal==0 && ((pressed_buttons & SCE_CTRL_DOWN) || (pressed_buttons & SCE_CTRL_UP)))){
@@ -350,11 +352,9 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
-				// If you just finished the manga, the image was freed. Don't break, just return.
-				return;
+				break;
 			}
 		}
-
 		// Photo mode
 		if (pressed_buttons & SCE_CTRL_CROSS) {
 			x = width / 2.0f;
@@ -370,19 +370,15 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 			mode = MODE_CUSTOM;
 			zoom *= ZOOM_FACTOR;
 		}
-
 		if (zoom < ZOOM_MIN) {
 			zoom = ZOOM_MIN;
 		}
-
 		if (zoom > ZOOM_MAX) {
 			zoom = ZOOM_MAX;
 		}
-
 		// Move
 		if (pad.lx < (ANALOG_CENTER - ANALOG_SENSITIVITY) || pad.lx > (ANALOG_CENTER + ANALOG_SENSITIVITY)) {
 			float d = ((pad.lx-ANALOG_CENTER) / MOVE_DIVISION) / zoom;
-
 			if (horizontal) {
 				x += cosf(rad) * d;
 			} else {
@@ -391,18 +387,15 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		}
 		if (pad.ly < (ANALOG_CENTER - ANALOG_SENSITIVITY) || pad.ly > (ANALOG_CENTER + ANALOG_SENSITIVITY)) {
 			float d = ((pad.ly-ANALOG_CENTER) / MOVE_DIVISION) / zoom;
-
 			if (horizontal) {
 				y += cosf(rad) * d;
 			} else {
 				x += sinf(rad) * d;
 			}
 		}
-
 		// Limit
 		float w = horizontal ? _halfScreenWidth : _halfScreenHeight;
 		float h = horizontal ? _halfScreenHeight : _halfScreenWidth;
-
 		if ((zoom *  width) > 2.0f * w) {
 			if (x < (w / zoom)) {
 				x = w / zoom;
@@ -412,7 +405,6 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		} else {
 			x = width / 2.0f;
 		}
-
 		if ((zoom * height) > 2.0f * h) {
 			if (y < (h / zoom)) {
 				y = h / zoom;
@@ -422,24 +414,20 @@ void photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		} else {
 			y = height / 2.0f;
 		}
-
 		// Start drawing
 		//startDrawing(bg_photo_image);
 		startDrawing();
-
 		// Photo
 		vita2d_draw_texture_scale_rotate_hotspot(tex, _halfScreenWidth, _halfScreenHeight, zoom, zoom, rad, x, y);
-
 		// Zoom text
 		//if ((sceKernelGetProcessTimeWide() - time) < ZOOM_TEXT_TIME)
 		//	pgf_draw_textf(SHELL_MARGIN_X, screenHeight - 3.0f * SHELL_MARGIN_Y, PHOTO_ZOOM_COLOR, FONT_SIZE, "%.0f%%", zoom * 100.0f);
-
 		// End drawing
 		endDrawing();
 	}
-	// If the user presses B, they're down here.
+	// This is the only way to exit.
 	freeTexture(tex);
-	return;
+	return _currentRelativeFilename;
 }
 
 #endif

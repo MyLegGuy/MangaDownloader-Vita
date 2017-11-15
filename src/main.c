@@ -1,9 +1,5 @@
 /*
 List ( in order of importance )
-TODO - Exit read mode if user exists data directory.
-TODO - Memorize last selected file
-	TODO - Make file for last selected entry in directory.
-		File will be called .lastSelection, contain the NAME of the last selected file, and only be created if the path begins with ux0/uma0:data/LUAMANGAS
 TODO - Option to use uma0.
 TODO - Include everything that my 3ds one had.
 TODO - More site support. I made a list.
@@ -276,6 +272,42 @@ char* backADirectory(char* _filepath){
 char stringStartsWith(char* _bigString, char* _shortString){
 	return strncmp(_bigString, _shortString, strlen(_shortString))==0;
 }
+
+void createLastSelectedFile(char* _passedDirectoryWithSlash, char* _passedFilename){
+	char _tempFilepathComplete[strlen(_passedDirectoryWithSlash)+strlen(".lastSelection")+1];
+	strcpy(_tempFilepathComplete,_passedDirectoryWithSlash);
+	strcat(_tempFilepathComplete,".lastSelection");
+	FILE* fp = fopen(_tempFilepathComplete,"w");
+	fprintf(fp,"%s",_passedFilename);
+	fclose(fp);
+}
+char* loadLastSelectedFile(char* _passedDirectoryWithSlash){
+	char _tempFilepathComplete[strlen(_passedDirectoryWithSlash)+strlen(".lastSelection")+1];
+	strcpy(_tempFilepathComplete,_passedDirectoryWithSlash);
+	strcat(_tempFilepathComplete,".lastSelection");
+	if (checkFileExist(_tempFilepathComplete)==1){
+		char _tempBuffer[100];
+		FILE* fp = fopen(_tempFilepathComplete,"r");
+		fgets(_tempBuffer,100,fp);
+		fclose(fp);
+		char* _returnBuffer = malloc(strlen(_tempBuffer)+1);
+		strcpy(_returnBuffer,_tempBuffer);
+		return _returnBuffer;
+	}else{
+		return NULL;
+	}
+}
+// 0 based return value
+// Returns -1 if not found
+signed int searchCharArray(char** _passedArray, int _passedLength, char* _searchTerm){
+	int i;
+	for (i=0;i<_passedLength;i++){
+		if (strcmp(_passedArray[i],_searchTerm)==0){
+			return i;
+		}
+	}
+	return -1;
+}
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
@@ -308,18 +340,30 @@ void mainRead(char* _startingDirectory){
 	strcpy(_currentDirectoryPath,_startingDirectory);
 	while(1){
 		int _currentDirectoryLength;
+		signed int _foundStartingSelection=0;
 		char** _currentDirectoryListing = getDirectory(_currentDirectoryPath,&_currentDirectoryLength);
 		if (_currentDirectoryListing==NULL){
 			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
 			continue;
 		}
-		signed int _tempUserChoice = showList(_currentDirectoryListing,_currentDirectoryLength,0,NULL)-1;
+		char* _tempLoadedLastSelected = loadLastSelectedFile(_currentDirectoryPath);
+		if (_tempLoadedLastSelected!=NULL){
+			_foundStartingSelection=searchCharArray(_currentDirectoryListing,_currentDirectoryLength,_tempLoadedLastSelected);
+			if (_foundStartingSelection==-1){
+				_foundStartingSelection=0;
+			}
+			free(_tempLoadedLastSelected);
+		}
+		signed int _tempUserChoice = showList(_currentDirectoryListing,_currentDirectoryLength,_foundStartingSelection,NULL)-1;
 		if (_tempUserChoice==-2){ // Normally -1, but we subtracted 1.
 			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
+			// Go back if user exits data directory
 			if (!stringStartsWith(_currentDirectoryPath,dataFolderRoot)){
 				break;
 			}
 			continue;
+		}else{
+			createLastSelectedFile(_currentDirectoryPath,_currentDirectoryListing[_tempUserChoice]);
 		}
 		_currentDirectoryPath = recalloc(_currentDirectoryPath,strlen(_currentDirectoryPath)+1+strlen(_currentDirectoryListing[_tempUserChoice])+1,strlen(_currentDirectoryPath)+1);
 		strcat(_currentDirectoryPath,_currentDirectoryListing[_tempUserChoice]);
@@ -334,7 +378,11 @@ void mainRead(char* _startingDirectory){
 			totalDownloadedFiles=-1;
 			char* _tempArgument = malloc(strlen(_currentDirectoryListing[_tempUserChoice])+1);
 			strcpy(_tempArgument,_currentDirectoryListing[_tempUserChoice]);
-			photoViewer(NULL,_tempArgument);
+			char* _pageReadTo = photoViewer(NULL,_tempArgument); // We want the last selected file to be the last page the user read
+			if (_pageReadTo!=NULL){
+				createLastSelectedFile(_currentDirectoryPath,_pageReadTo);
+				free(_pageReadTo);
+			}
 			free(_tempArgument);
 		}else{
 			strcat(_currentDirectoryPath,"/");
