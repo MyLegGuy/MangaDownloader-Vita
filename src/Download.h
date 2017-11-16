@@ -24,13 +24,15 @@
 		size_t curlWriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp){
 			size_t realsize = size * nmemb;
 			MemoryStruct* mem = (MemoryStruct*) userp;
-			mem->memory = realloc(mem->memory, mem->size + realsize + 1);
-			if(mem->memory == NULL) {
+
+			char* _newBuffer = realloc(mem->memory, mem->size + realsize + 1);
+			if(_newBuffer == NULL) {
 				free(mem->memory);
 				/* out of memory! */
 				WriteToDebugFile("not enough memory (realloc returned NULL)\n");
 				return 0;
 			}
+			mem->memory = _newBuffer;
 		
 			memcpy(&(mem->memory[mem->size]), contents, realsize);
 			mem->size += realsize;

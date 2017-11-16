@@ -30,7 +30,8 @@ function storage_onListMoreInfo(_passedListId, _passedListEntry)
 			return;
 		end
 		photoViewer(_tempLoadedCover)
-		freeTexture(_tempLoadedCover)
+		-- Alredy freed by photo viewer
+		--freeTexture(_tempLoadedCover)
 	end
 end
 

@@ -36,7 +36,8 @@ function onListMoreInfo__stuff(_passedListId, _passedListEntry)
 		showStatus("Getting cover...")
 		_tempLoadedCover = loadImageFromUrl(getCoverUrl(seriesListUrl[_passedListEntry]),FILETYPE_JPG)
 		photoViewer(_tempLoadedCover)
-		freeTexture(_tempLoadedCover)
+		-- No, really, don't free this. It's already been freed.
+		--freeTexture(_tempLoadedCover)
 	end
 end
 

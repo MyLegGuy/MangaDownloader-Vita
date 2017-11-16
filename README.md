@@ -4,20 +4,24 @@
 ### Supported sites:
 * mangareader.net
 * dynasty-scans.com
-
+* An little bonus.
 
 ### How to use
 It's moron-proof.
 
-1. Select website.
-2. Select manga series.
-3. Select chapter.
-4. Press "done."
-5. Wait for download to finish.
+1. Select "Download."
+2. Select website.
+3. Select download mode.
+4. Select manga series.
+5. Select chapter.
+6. Press "done."
+7. Wait for download to finish.
 
 Refer to the digital manual for more information. (Can be accessed from the LiveArea.)
 
 **Downloads are saved to ux0:data/LUAMANGAS/Manga/.**
+**Some images crash VitaShell. They're valid and downloaded properly. I don't know how to fix this right now.**
+
 
 ### Support
 

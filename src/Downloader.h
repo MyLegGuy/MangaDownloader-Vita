@@ -1094,6 +1094,7 @@
 			popupMessage("Missing texture format!",1,0);
 			_loadedUrlTexture = NULL;
 		}
+		free(_foundBuffer);
 		lua_pushlightuserdata(passedState,_loadedUrlTexture);
 		return 1;
 	}

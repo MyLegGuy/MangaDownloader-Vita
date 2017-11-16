@@ -28,7 +28,8 @@ function storage_onListMoreInfo(_passedListId, _passedListEntry)
 	showStatus("Getting cover...")
 	_tempLoadedCover = loadImageFromUrl(getCoverUrl(string.sub(seriesListUrl[_passedListEntry],2)),FILETYPE_JPG)
 	photoViewer(_tempLoadedCover)
-	freeTexture(_tempLoadedCover)
+	-- Do not uncomment.
+	--freeTexture(_tempLoadedCover)
 end
 
 function onOptionsLoad()

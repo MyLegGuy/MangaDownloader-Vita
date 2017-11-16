@@ -39,9 +39,11 @@ void readPad(){
 // My code
 #include "photoExtended.h"
 char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
-	char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
-	strcpy(_tempSafeSpace,_currentRelativeFilename);
-	_currentRelativeFilename = _tempSafeSpace;
+	if (_currentRelativeFilename!=NULL){
+		char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
+		strcpy(_tempSafeSpace,_currentRelativeFilename);
+		_currentRelativeFilename = _tempSafeSpace;
+	}
 	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
 	//char* _currentRelativeFilename;
@@ -288,16 +290,17 @@ void readPad() {
 }
 // No need to free a texture afterwards if you pass one to it.
 // _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
-char* photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
-	// Don't want to touch a buffer I don't know about.
-	char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
-	strcpy(_tempSafeSpace,_currentRelativeFilename);
-	_currentRelativeFilename = _tempSafeSpace;
-
+char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) {
+	WriteToDebugFile("photoviewer used");
+	if (_currentRelativeFilename!=NULL){
+		// Don't want to touch a buffer I don't know about.
+		char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
+		strcpy(_tempSafeSpace,_currentRelativeFilename);
+		_currentRelativeFilename = _tempSafeSpace;
+	}
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
 	char _isSingleImageMode = _singleTexture!=NULL;
-
 	vita2d_texture* tex=NULL;
 	if (_isSingleImageMode==1){
 		tex=_singleTexture;
@@ -305,20 +308,17 @@ char* photoViewer(CrossTexture* _singleTexture,char* _currentRelativeFilename) {
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			return NULL;
-		}	
+		}
 	}
 	if (!tex) {
 		return NULL;
 	}
-
 	// Variables
 	float width = 0.0f, height = 0.0f, x = 0.0f, y = 0.0f, rad = 0.0f, zoom = 1.0f;
 	int mode = MODE_PERFECT;
 	uint64_t time = 0;
-
 	// Reset image
 	resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
-
 	while (1) {
 		readPad();
 		// Cancel

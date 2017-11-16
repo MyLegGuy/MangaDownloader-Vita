@@ -1,10 +1,12 @@
 /*
 List ( in order of importance )
+TODO - Can't exit download mode and then go back to it.
 TODO - Option to use uma0.
 TODO - Include everything that my 3ds one had.
 TODO - More site support. I made a list.
 */
 #define VERSION 3
+#define VERSIONSTRING "v2.1"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -392,6 +394,7 @@ void mainRead(char* _startingDirectory){
 	free(_currentDirectoryPath);
 	return;
 }
+
 int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();
