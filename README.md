@@ -20,6 +20,7 @@ It's moron-proof.
 Refer to the digital manual for more information. (Can be accessed from the LiveArea.)
 
 **Downloads are saved to ux0:data/LUAMANGAS/Manga/.**
+
 **Some images crash VitaShell. They're valid and downloaded properly. I don't know how to fix this right now.**
 
 
