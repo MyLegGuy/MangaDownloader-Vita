@@ -4,7 +4,7 @@
 ### Supported sites:
 * mangareader.net
 * dynasty-scans.com
-* An little bonus.
+* A little bonus.
 
 ### How to use
 It's moron-proof.
