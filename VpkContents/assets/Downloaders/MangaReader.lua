@@ -12,9 +12,9 @@ chapterListUrl = {};
 chapterListFriendly = {};
 
 function getCoverUrl(_passedName)
-	local _coverHtml = downloadString("http://www.mangareader.net/" .. _passedName);
+	local _coverHtml = downloadString("https://www.mangareader.net/" .. _passedName);
 	local lastFound=-1;
-	--<div id="mangaimg"><img src="http://s1.mangareader.net/cover/the-gamer/the-gamer-l0.jpg" alt="The Gamer Manga"></div>
+	--<div id="mangaimg"><img src="https://s1.mangareader.net/cover/the-gamer/the-gamer-l0.jpg" alt="The Gamer Manga"></div>
 	lastFound = string.find(_coverHtml,"mangaimg",lastFound+1,true);
 	local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
 	lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
@@ -53,7 +53,7 @@ end
 
 function getSeriesList()
 	showStatus("Getting series list...")
-	local _listHtml = downloadString("http://www.mangareader.net/alphabetical");
+	local _listHtml = downloadString("https://www.mangareader.net/alphabetical");
 	-- At the top of the page, there's a bunch of letters for sorting by letter. We want to start searching past that.
 	local _listStart = string.find(_listHtml,"#Z",1,true);
 	local _lastFound = _listStart;
@@ -89,7 +89,7 @@ function downloadGetUrlData(_mangaName,_mangaChapter,_mangaPageNumber)
 
 	local _startImageUrlIndex;
 	local _endImageUrlIndex;
-	local _currentPageHtml = downloadString("http://www.mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaPageNumber);
+	local _currentPageHtml = downloadString("https://www.mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaPageNumber);
 	if (downloadFailed) then
 		return false, false
 	end
@@ -150,7 +150,7 @@ function downloadFindNumberOfPages()
 	if (isAsIGo==false) then
 		showStatus(extraStatusPrefix .. "Getting number of pages...")
 	end
-	_mangaPageSample = downloadString("http://www.mangareader.net/" .. currentDownloadName .. "/" .. tostring(currentDownloadChapterNumber) .. "/1")
+	_mangaPageSample = downloadString("https://www.mangareader.net/" .. currentDownloadName .. "/" .. tostring(currentDownloadChapterNumber) .. "/1")
 	if (downloadFailed) then
 		return false;
 	end
@@ -183,7 +183,7 @@ function downloadPage(_mangaName,_mangaChapter,_mangaPageNumber,_saveLocation)
 	if (isAsIGo==false) then
 		showStatus(extraStatusPrefix .. "Downloading " .. _mangaPageNumber .. "/" .. currentDownloadTotalPages);
 	end
-	downloadFile(("http://" .. _subdomain .. ".mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaName .. "-" .. _fileNumber .. ".jpg"),(_saveLocation .. string.format("%03d",_mangaPageNumber) .. ".jpg"));
+	downloadFile(("https://" .. _subdomain .. ".mangareader.net/" .. _mangaName .. "/" .. _mangaChapter .. "/" .. _mangaName .. "-" .. _fileNumber .. ".jpg"),(_saveLocation .. string.format("%03d",_mangaPageNumber) .. ".jpg"));
 	incrementTotalDownloadedFiles(1);
 	requireNewDirectorySearch();
 end
@@ -249,7 +249,7 @@ function getChapterList(seriesname)
 	showStatus("Getting chapter list...")
 	chapterListUrl = {};
 	chapterListFriendly = {};
-	local _listHtml = downloadString("http://www.mangareader.net" .. seriesname);
+	local _listHtml = downloadString("https://www.mangareader.net" .. seriesname);
 	local _lastFound = string.find(_listHtml,"chapterlist",1,true);
 	local i=1;
 	while (true) do
