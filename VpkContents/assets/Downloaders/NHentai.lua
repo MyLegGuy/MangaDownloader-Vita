@@ -89,11 +89,15 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 
 	-- Find number of pages
 	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
-	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,",",_firstFind+11,true)-1));
-	-- Last result can has squgily braket instead of comma?
-	if (_parsedGallery.num_pages==nil) then
-		_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,"}",_firstFind+11,true)-1));
+
+	local _numPageEnd = string.find(_downloadedGalleryJSON,",",_firstFind+11,true);
+	if (_numPageEnd==nil) then -- Sometimes it's a bracket
+		_numPageEnd = string.find(_downloadedGalleryJSON,"}",_firstFind+11,true);
+		if (_numPageEnd==nil) then
+			showStatus("Could not parse _numPageEnd. Will now crash.");
+		end
 	end
+	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1));
 
 	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
 	_firstFind = string.find(_downloadedGalleryJSON,"\"images\"",_secondFind,true);
