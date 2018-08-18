@@ -1,8 +1,9 @@
 -- Started on 10/19/17
 -- Very basic gallery downloading by ID made by 8:50 PM 10/19/17
 -- Searching made on 10/20/17 by 11:59 PM
+-- Fixed no search result bug on 8/18/18 1:29 AM
+
 -- TODO - Make it so user can tell what's in English
--- TODO - Vita crashes if no search result. I see "Getting search JSON..."
 
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
@@ -14,6 +15,8 @@ currentParsedSearchResults = {};
 MODE_SEARCH = 1;
 MODE_ID = 2;
 userChosenMode=0;
+
+NORESULTSTRING = "No results!";
 
 function storage_onListMoreInfo(_passedListId, _passedListEntry)
 	if ((_passedListId)==3) then
@@ -86,8 +89,12 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 
 	-- Find number of pages
 	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
-	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,"}",_firstFind+11,true)-1));
-	
+	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,",",_firstFind+11,true)-1));
+	-- Last result can has squgily braket instead of comma?
+	if (_parsedGallery.num_pages==nil) then
+		_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,string.find(_downloadedGalleryJSON,"}",_firstFind+11,true)-1));
+	end
+
 	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
 	_firstFind = string.find(_downloadedGalleryJSON,"\"images\"",_secondFind,true);
 	
@@ -119,6 +126,11 @@ function parseSearchResults(_searchResultJSON)
 		i=i+1;
 		_lastFoundUploadDateIndex = _tempFound;
 	end
+	if (i==1) then
+		_totalParsedResults.num_pages = 0;
+		return _totalParsedResults;
+	end
+
 	-- If we're here, that means that no more mangas were found.
 	-- _lastFoundUploadDateIndex contains the start of the last found manga.
 	-- This will find the number of pages in the last manga
@@ -156,9 +168,12 @@ function InitList02(isFirstTime)
 		setUserInput(2,1);
 		_list02UserInput01Cache = userInput01;
 		local _returnTable = {};
-		print(currentParsedSearchResults.num_pages)
-		for i=1,currentParsedSearchResults.num_pages do
-			table.insert(_returnTable,tostring(i));
+		if (currentParsedSearchResults.num_pages==0) then
+			table.insert(_returnTable,NORESULTSTRING);
+		else
+			for i=1,currentParsedSearchResults.num_pages do
+				table.insert(_returnTable,tostring(i));
+			end
 		end
 		return _returnTable;
 	end
@@ -201,8 +216,13 @@ function InitList03(isFirstTime)
 		_userInput01Cache = userInput01;
 		_cacheSearchPage = userInput02;
 		local _returnTable = {};
-		for i=1,#currentParsedSearchResults do
-			table.insert(_returnTable,(currentParsedSearchResults[i].prettyName));
+		local _cachedNumber = #currentParsedSearchResults;
+		if (_cachedNumber==0) then
+			table.insert(_returnTable,NORESULTSTRING);
+		else
+			for i=1,_cachedNumber do
+				table.insert(_returnTable,(currentParsedSearchResults[i].prettyName));
+			end
 		end
 		return _returnTable;
 	end
