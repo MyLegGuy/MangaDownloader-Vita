@@ -1113,7 +1113,10 @@
 		downloadEnableDebugInfo();
 		return 0;
 	}
-
+	int L_setReferer(lua_State* passedState){
+		setReferer(lua_tostring(passedState,1));
+		return 0;
+	}
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
 		LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1139,6 +1142,7 @@
 		LUAREGISTER(L_photoViewer,"photoViewer");
 		LUAREGISTER(L_freeTexture,"freeTexture");
 		LUAREGISTER(L_enableDownloadDebugInfo,"enableDownloadDebugInfo");
+		LUAREGISTER(L_setReferer,"setReferer");
 		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

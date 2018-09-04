@@ -46,6 +46,9 @@ int cursorWidth;
 #include "Downloader.h"
 char* dataFolderRoot;
 /////////////////////////////////////////////////////////
+void XOutFunction(){
+	exit(0);
+}
 char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	controlsEnd();
 	// The string needs to be copied. We're going to modify it, at we can't if we just type the string into the function and let the compiler do everything else
@@ -323,8 +326,10 @@ void init(){
 		}
 	#endif
 	// Text
+	fontSize=30;
 	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
 	loadFont(tempPathFixBuffer);
+
 	currentTextHeight = textHeight(fontSize);
 	cursorWidth = textWidth(fontSize,">");
 	// Make data folder

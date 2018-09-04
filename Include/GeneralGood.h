@@ -13,21 +13,44 @@
 	#include <psp2/power.h>
 #endif
 
+#if PLATFORM == PLAT_3DS
+	#include <3ds/svc.h>
+	#include <3ds/types.h>
+	#include <3ds/services/fs.h>
+#endif
+
 #if PLATFORM == PLAT_COMPUTER
 	#define CROSSDIR DIR*
 	#define CROSSDIRSTORAGE struct dirent*
 #elif PLATFORM == PLAT_VITA
 	#define CROSSDIR SceUID
 	#define CROSSDIRSTORAGE SceIoDirent
+#elif PLATFORM == PLAT_3DS
+	#define CROSSDIR Handle
+	#define CROSSDIRSTORAGE FS_DirectoryEntry
+#else
+	#warning NO DIRECTORY LISTING YET
+	#define CROSSDIR int
+	#define CROSSDIRSTORAGE int
 #endif
 
-#if RENDERER == REND_SDL
+#if PLATFORM == PLAT_VITA
+	typedef struct{
+		char* filename; // Malloc
+		int internalPosition;
+		FILE* fp;
+	}vitaFile;
+	#define CROSSFILE vitaFile
+#elif RENDERER == REND_SDL
 	#define CROSSFILE SDL_RWops
 	#define CROSSFILE_START RW_SEEK_SET
 	#define CROSSFILE_CUR RW_SEEK_CUR
 	#define CROSSFILE_END RW_SEEK_END
 #else
 	#define CROSSFILE FILE
+#endif
+// Defaults
+#ifndef CROSSFILE_START
 	#define CROSSFILE_START SEEK_SET
 	#define CROSSFILE_CUR SEEK_CUR
 	#define CROSSFILE_END SEEK_END
@@ -76,6 +99,8 @@ typedef int16_t		s16;
 typedef int32_t		s32;
 typedef int64_t		s64;
 
+void generalGoodQuit();
+void generalGoodInit();
 signed char checkFileExist(const char* location);
 void createDirectory(const char* path);
 int crossfclose(CROSSFILE* stream);
@@ -97,5 +122,6 @@ void quitApplication();
 void removeNewline(char* _toRemove);
 char showErrorIfNull(void* _thingie);
 void wait(int miliseconds);
+int crossungetc(int c, CROSSFILE* stream);
  
 #endif /* GENERALGOOD_H */

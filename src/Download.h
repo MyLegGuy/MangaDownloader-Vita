@@ -79,6 +79,9 @@
 		void disableSSLVerification(){
 			curl_easy_setopt(curl_handle, CURLOPT_SSL_VERIFYPEER, 0);
 		}
+		void setReferer(const char* _newReferer){
+			curl_easy_setopt(curl_handle, CURLOPT_REFERER, _newReferer);
+		}
 		void setUserAgent(const char* _agentName){
 			curl_easy_setopt(curl_handle, CURLOPT_USERAGENT, _agentName);
 		}
