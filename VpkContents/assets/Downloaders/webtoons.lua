@@ -4,7 +4,7 @@
 --https://www.webtoons.com/search?keyword=slice%20of%20life&searchType=CHALLENGE
 
 APPENDPAGEFORMAT = "&page=%d"
-SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s&searchType=CHALLENGE" .. APPENDPAGEFORMAT)
+SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s" .. APPENDPAGEFORMAT)
 -- Applied to gotten comic URLs
 URLPREFIX = "https://www.webtoons.com"
 
@@ -97,10 +97,10 @@ function getSingleSearchResults(_searchResultHTML)
 	_foundUrls={};
 	_foundNames={};
 	i = 0;
-	_lastFoundStart = 0;
+	_lastFoundStart = string.find(_searchResultHTML,"search_result",0,true);
 	while (true) do
 		--<a href="/challenge/episodeList?titleNo=whateverId" class="challenge_item N=a:scl.list,i:whateverId,g:en_en">
-		_lastFoundStart = string.find(_searchResultHTML,"/challenge/episodeList",_lastFoundStart+1,true);
+		_lastFoundStart = string.find(_searchResultHTML,"/episodeList",_lastFoundStart+1,true);
 		if (_lastFoundStart==nil) then
 			break;
 		end
@@ -161,7 +161,7 @@ end
 
 function getComicPageEpisodes(_searchResultHTML)
 	--detail_body challenge
-	local _pageListStart = string.find(_searchResultHTML,"detail_body challenge",0,true);
+	local _pageListStart = string.find(_searchResultHTML,"detail_body",0,true);
 	if (_pageListStart==nil) then
 		popupMessage("Error in get comic page episodes function");
 		return;
@@ -194,7 +194,6 @@ end
 
 function endEpisodePageSelect()
 	goodShowStatus("Getting comic episodes on page " .. userInput01);
-	print(string.format(URLPREFIX .. selectedComicUrl,userInput01))
 	_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,userInput01));
 	getComicPageEpisodes(_searchResultHTML);
 	_searchResultHTML=nil;
