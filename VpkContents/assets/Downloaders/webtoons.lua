@@ -3,7 +3,17 @@
 -- multiple pages
 --https://www.webtoons.com/search?keyword=slice%20of%20life&searchType=CHALLENGE
 
-SEARCHFORMATURL = "https://www.webtoons.com/search?keyword=%s&searchType=CHALLENGE&page=%d"
+APPENDPAGEFORMAT = "&page=%d"
+SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s&searchType=CHALLENGE" .. APPENDPAGEFORMAT)
+-- Applied to gotten comic URLs
+URLPREFIX = "https://www.webtoons.com"
+
+SCRIPTVERSION=1;
+SAVEVARIABLE=0;
+
+STARTCOMICSEPISODELISTONLASTPAGE=true;
+
+currentInputScreen=0;
 
 numSearchResultPages=0;
 searchResultUrls={};
@@ -11,7 +21,13 @@ searchResultNames={};
 
 lastSearchTerms="";
 
+-- Set after first selection
+selectedComicUrl="";
+selectedComicName="";
+
 function downloadChapter(chapterUrl)
+	goodShowStatus("Getting page URLs");
+
 	_chapterDest = (getMangaFolder(true) .. "testFolder")
 	_pageFormat = (_chapterDest .. "/%03d.jpg");
 	createDirectory(_chapterDest);
@@ -36,6 +52,7 @@ function downloadChapter(chapterUrl)
 	i=i-1; -- 'i' now represents the final index
 
 	for j=1,i do
+		goodShowStatus("Downloading " .. j "/" .. i);
 		print(_pageUrlTable[j])
 		downloadFile(_pageUrlTable[j],string.format(_pageFormat,j));
 	end
@@ -50,8 +67,8 @@ end
 <h3 class="search_result">Discover (14 results)</h3>
 ]]
 
--- Given the HTML for a page of search results, return the total number of search result pages. Can return 1 if there's only one page
-function getTotalSearchResultPages(_searchResultHTML)
+-- Given the HTML for a page of search results or a comic's main page, return the total number of search result pages. Can return 1 if there's only one page
+function getTotalPages(_searchResultHTML)
 	_pageListStart = string.find(_searchResultHTML,"paginate",0,true);
 	if (_pageListStart==nil) then -- One page of results only
 		return 1;
@@ -110,7 +127,7 @@ function updateSearchLists()
 end
 
 -- Search with terms
-function EndInput01()
+function endSearchInput()
 	goodShowStatus("Getting search results...");
 	-----------------------
 	lastSearchTerms = string.gsub(userInput01," ","+");
@@ -118,13 +135,13 @@ function EndInput01()
 	-----------------------
 	searchResultNames, searchResultUrls = getSingleSearchResults(_searchResultHTML)
 	-----------------------
-	numSearchResultPages = getTotalSearchResultPages(_searchResultHTML);
+	numSearchResultPages = getTotalPages(_searchResultHTML);
 	-----------------------
 	setUserInput(2,1);
 	updateSearchLists()
 end
 
-function EndList02()
+function endSearchPageInput()
 	goodShowStatus("Getting search result page " .. userInput02);
 	_searchResultHTML = downloadString(string.format(SEARCHFORMATURL,lastSearchTerms,userInput02))
 	searchResultNames, searchResultUrls = getSingleSearchResults(_searchResultHTML)
@@ -142,6 +159,75 @@ function genPageListTable(_numPages)
 	return _returnTable;
 end
 
+function getComicPageEpisodes(_searchResultHTML)
+	--detail_body challenge
+	local _pageListStart = string.find(_searchResultHTML,"detail_body challenge",0,true);
+	if (_pageListStart==nil) then
+		popupMessage("Error in get comic page episodes function");
+		return;
+	end
+	-- Apparently this shows up even for comics with only one page of episodes
+	local _pageListEnd = string.find(_searchResultHTML,"paginate",_pageListStart,true);
+
+	searchResultNames=nil;
+	searchResultUrls=nil;
+	searchResultNames = {};
+	searchResultUrls = {};
+
+	i=0;
+	local _lastUrlStart = _pageListStart;
+	while (true) do
+		_lastUrlStart = string.find(_searchResultHTML,"href",_lastUrlStart+1,true);
+		if (_lastUrlStart==nil or _lastUrlStart>_pageListEnd) then
+			break;
+		end
+		i=i+1;
+		_lastUrlStart = _lastUrlStart+6;
+		searchResultUrls[i] = string.sub(_searchResultHTML,_lastUrlStart,string.find(_searchResultHTML,"\"",_lastUrlStart,true)-1);
+		_lastUrlStart = string.find(_searchResultHTML,"subj",_lastUrlStart,true);
+		_lastUrlStart = _lastUrlStart+12;
+		searchResultNames[i] = string.sub(_searchResultHTML,_lastUrlStart,string.find(_searchResultHTML,"</span>",_lastUrlStart,true)-1);
+
+		_lastUrlStart = string.find(_searchResultHTML,"</li>",_lastUrlStart,true);
+	end
+end
+
+function endEpisodePageSelect()
+	goodShowStatus("Getting comic episodes on page " .. userInput01);
+	print(string.format(URLPREFIX .. selectedComicUrl,userInput01))
+	_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,userInput01));
+	getComicPageEpisodes(_searchResultHTML);
+	_searchResultHTML=nil;
+	
+	for i=1,#searchResultNames do
+		print(searchResultNames[i])
+	end
+
+	assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames) -- Zero based index
+	setUserInput(2,1); -- Not zero based, lol
+end
+
+function MyLegGuy_InputInit()
+	if (currentInputScreen==1) then
+		-- Fills the lists with first page of results
+		goodShowStatus("Getting initial comic data...");
+
+		local _tempVar=1;
+		if (STARTCOMICSEPISODELISTONLASTPAGE==true) then
+			_tempVar=9999;
+		end
+		_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,_tempVar));
+		getComicPageEpisodes(_searchResultHTML);
+		numSearchResultPages = getTotalPages(_searchResultHTML);
+		_searchResultHTML=nil;
+	
+		assignListData(currentQueueCLists,currentQueueCListsLength,0,genPageListTable(numSearchResultPages))
+		assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames)
+		setUserInput(1,1);
+		setUserInput(2,1);
+	end
+end
+
 function MyLegGuy_Download()
 	print("Download.")
 
@@ -152,7 +238,9 @@ end
 
 function MyLegGuy_Prompt()
 	-- Cannot download unless referer is set to http://www.webtoons.com
-	setReferer("http://www.webtoons.com");
+	setReferer("https://www.webtoons.com");
+
+	--enableDownloadDebugInfo();
 
 	-- One
 	ResetUserChoices();
@@ -163,14 +251,32 @@ function MyLegGuy_Prompt()
 	userInputQueue("Search result page","There may be multiple pages of results. Choose one here.",INPUTTYPELIST);
 	userInputQueue("Search results","Select the comic series.",INPUTTYPELIST);
 	
+	EndInput01 = endSearchInput;
+	EndList02 = endSearchPageInput;
+
 	if (waitForUserInputs(false)==false or userInput01=="") then
 		return false;
 	end
 
-	-- Todo - Select chapters
-	userInputQueue("Episode page","There may be multiple pages of episodes. Choose one here.",INPUTTYPELIST);
-	userInputQueue("Episode","Choose episode.",INPUTTYPELIST);
+	--------------------------------------------------------------------------------------------------
+	-- These are from the last menu
+	EndInput01=nil
+	EndList02=nil;
+	-- Save the data we need, dispose the rest
+	selectedComicUrl = (searchResultUrls[userInput03] .. APPENDPAGEFORMAT);
+	selectedComicName = searchResultNames[userInput03];
+	searchResultUrls=nil;
+	searchResultNames=nil;
+	--
+	currentInputScreen=1; -- So MyLegGuy_InputInit works
+	EndList01 = endEpisodePageSelect;
 
+	ResetUserChoices();
+	userInputQueue("Episode page","There may be multiple pages of episodes. Choose one here. The lower the number, the more recently it was posted.",INPUTTYPELIST);
+	userInputQueue("Episode","Choose episode of " .. selectedComicName .. " to download.",INPUTTYPELIST);
+	if (waitForUserInputs(false)==false) then
+		return false;
+	end
 	
 
 	return false;

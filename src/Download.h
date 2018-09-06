@@ -66,6 +66,7 @@
 			curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 			curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
 			curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunkToDownloadTo);
+			curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
 			res = curl_easy_perform(curl_handle);
 			if(res != CURLE_OK) {
 				WriteToDebugFile("Failed, the world is over.\n");

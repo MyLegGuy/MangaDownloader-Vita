@@ -6,7 +6,7 @@ TODO - Include everything that my 3ds one had.
 TODO - More site support. I made a list.
 */
 #define VERSION 3
-#define VERSIONSTRING "v2.1"
+#define VERSIONSTRING "v2.4"
 
 #include <stdio.h>
 #include <stdlib.h>

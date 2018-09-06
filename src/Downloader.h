@@ -113,7 +113,7 @@
 	}
 	void callListMoreInfo(lua_State* passedState, char _listNumber, int _listEntry){
 		if (lua_getglobal(passedState,"onListMoreInfo")!=LUA_TFUNCTION){
-			lua_pop(L,1);
+			lua_pop(passedState,1);
 			return;
 		}
 		lua_pushnumber(passedState,_listNumber);
@@ -799,6 +799,12 @@
 			}else{
 				userInputResults[i]=NULL;
 			}
+		}
+		// Allow an init function so script can init lists
+		if (lua_getglobal(passedState,"MyLegGuy_InputInit")!=LUA_TFUNCTION){
+			lua_pop(passedState,1);
+		}else{
+			lua_call(passedState, 0, 0);
 		}
 		// Allow user to input stuff
 		while (1){
