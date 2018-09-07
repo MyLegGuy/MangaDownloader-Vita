@@ -3,6 +3,13 @@
 -- multiple pages
 --https://www.webtoons.com/search?keyword=slice%20of%20life&searchType=CHALLENGE
 
+--[[
+IDEA:
+I think I'm having trouble getting other pages of the comics because the url variables are being discarded when the website redirects me to the specific page for the English version
+	- The downloaded HTML should contain my new url, apply the page number data to that
+	- Also I deleted STARTCOMICSEPISODELISTONLASTPAGE because I can't jump to pages without getting the most recent chapter page first. So this variable is pointless because it wouldn't save time
+]]
+
 APPENDPAGEFORMAT = "&page=%d"
 SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s" .. APPENDPAGEFORMAT)
 -- Applied to gotten comic URLs
@@ -10,8 +17,6 @@ URLPREFIX = "https://www.webtoons.com"
 
 SCRIPTVERSION=1;
 SAVEVARIABLE=0;
-
-STARTCOMICSEPISODELISTONLASTPAGE=true;
 
 currentInputScreen=0;
 
@@ -103,6 +108,9 @@ function getSingleSearchResults(_searchResultHTML)
 		_lastFoundStart = string.find(_searchResultHTML,"/episodeList",_lastFoundStart+1,true);
 		if (_lastFoundStart==nil) then
 			break;
+		end
+		if (string.sub(_searchResultHTML,_lastFoundStart-16,_lastFoundStart-13)=="href") then -- Check if this string starts with /challenge
+			_lastFoundStart = _lastFoundStart-10;
 		end
 		i = i+1;
 		_foundUrlEnd = string.find(_searchResultHTML,"\"",_lastFoundStart,true);
@@ -211,11 +219,7 @@ function MyLegGuy_InputInit()
 		-- Fills the lists with first page of results
 		goodShowStatus("Getting initial comic data...");
 
-		local _tempVar=1;
-		if (STARTCOMICSEPISODELISTONLASTPAGE==true) then
-			_tempVar=9999;
-		end
-		_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,_tempVar));
+		_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,1));
 		getComicPageEpisodes(_searchResultHTML);
 		numSearchResultPages = getTotalPages(_searchResultHTML);
 		_searchResultHTML=nil;
