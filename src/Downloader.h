@@ -560,7 +560,8 @@
 		strcpy(luaFilenameComplete,downloadersLocation);
 		strcat(luaFilenameComplete,luaFileToUse);
 		if (luaL_dofile(L,luaFilenameComplete)!=0){
-			popupMessage("Failed to run Lua file.",0,0);
+			popupMessage("Failed to run Lua file.",1,0);
+			popupMessage(lua_tostring(L,-1),1,0);
 		}
 		if (lua_getglobal(L,"MyLegGuy_Prompt")==0){
 			popupMessage("Could not find MyLegGuy_Prompt function.",1,0);
@@ -1123,6 +1124,19 @@
 		setReferer(lua_tostring(passedState,1));
 		return 0;
 	}
+	int L_setRedirects(lua_State* passedState){
+		downloadSetRedirects(lua_toboolean(passedState,1));
+		return 0;
+	}
+	int L_getLastRedirect(lua_State* passedState){
+		char* _retUrl = downloadGetLastRedirect();
+		if (_retUrl!=NULL){
+			lua_pushstring(passedState,_retUrl);
+			return 1;
+		}else{
+			return 0;
+		}
+	}
 	void MakeLuaUseful(){
 		LUAREGISTER(L_downloadString,"downloadString");
 		LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1149,6 +1163,8 @@
 		LUAREGISTER(L_freeTexture,"freeTexture");
 		LUAREGISTER(L_enableDownloadDebugInfo,"enableDownloadDebugInfo");
 		LUAREGISTER(L_setReferer,"setReferer");
+		LUAREGISTER(L_setRedirects,"setRedirects");
+		LUAREGISTER(L_getLastRedirect,"getLastRedirect");
 		//
 		LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 		LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

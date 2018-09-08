@@ -20,6 +20,7 @@
 			size_t size;
 		}MemoryStruct;
 		CURL* curl_handle;
+		char curlFollowRedirects=0;
 
 		size_t curlWriteMemoryCallback(void *contents, size_t size, size_t nmemb, void *userp){
 			size_t realsize = size * nmemb;
@@ -66,7 +67,7 @@
 			curl_easy_setopt(curl_handle, CURLOPT_URL, url);
 			curl_easy_setopt(curl_handle, CURLOPT_WRITEFUNCTION, curlWriteMemoryCallback);
 			curl_easy_setopt(curl_handle, CURLOPT_WRITEDATA, (void*)&chunkToDownloadTo);
-			curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, 1);
+			curl_easy_setopt(curl_handle, CURLOPT_FOLLOWLOCATION, curlFollowRedirects);
 			res = curl_easy_perform(curl_handle);
 			if(res != CURLE_OK) {
 				WriteToDebugFile("Failed, the world is over.\n");
@@ -88,6 +89,25 @@
 		}
 		void downloadEnableDebugInfo(){
 			curl_easy_setopt(curl_handle, CURLOPT_VERBOSE, 1L);
+		}
+		void downloadSetRedirects(char _isEnabled){
+			curlFollowRedirects = _isEnabled;
+		}
+		char* downloadGetLastRedirect(){
+			if (curlFollowRedirects==0){
+				char* _returnLocation;
+				CURLcode res;
+				res = curl_easy_getinfo(curl_handle, CURLINFO_REDIRECT_URL, &_returnLocation);
+				if((res == CURLE_OK) && _returnLocation) {
+					return _returnLocation;
+				}else{
+					printf("Erorr in get redirect url");
+					return NULL;
+				}
+			}else{
+				printf("Can't work, you're already following redirects");
+				return NULL;
+			}
 		}
 		void initDownload(){
 			#if PLATFORM == PLAT_VITA

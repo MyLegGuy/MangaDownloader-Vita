@@ -1,7 +1,11 @@
+-- Note - There is no workaround for automaticlly starting at the last page. If you want to start at the latest episodes page you need another web request (which in the end won't save time) or ditch the page menu selection.
+
 -- one page
 --https://www.webtoons.com/search?keyword=Merryweatherey&searchType=CHALLENGE
 -- multiple pages
 --https://www.webtoons.com/search?keyword=slice%20of%20life&searchType=CHALLENGE
+
+-- Instead of drawing 3 textures, or writing a PNG representing all 3, just do vita2d_create_empty_texture and render them on there!
 
 APPENDPAGEFORMAT = "&page=%d"
 SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s" .. APPENDPAGEFORMAT)
@@ -26,7 +30,11 @@ selectedComicName="";
 function downloadChapter(chapterUrl)
 	goodShowStatus("Getting page URLs");
 
-	_chapterDest = (getMangaFolder(true) .. "testFolder")
+	_chapterDest = (getMangaFolder(true) .. makeFolderFriendly(selectedComicName))
+	createDirectory(_chapterDest);
+	_chapterDest = (_chapterDest .. "/" .. "testFolder");
+	createDirectory(_chapterDest);
+
 	_pageFormat = (_chapterDest .. "/%03d.jpg");
 	createDirectory(_chapterDest);
 
@@ -50,7 +58,7 @@ function downloadChapter(chapterUrl)
 	i=i-1; -- 'i' now represents the final index
 
 	for j=1,i do
-		goodShowStatus("Downloading " .. j "/" .. i);
+		goodShowStatus("Downloading " .. j .. "/" .. i);
 		print(_pageUrlTable[j])
 		downloadFile(_pageUrlTable[j],string.format(_pageFormat,j));
 	end
@@ -193,11 +201,10 @@ function endEpisodePageSelect()
 	_searchResultHTML = downloadString(string.format(selectedComicUrl,userInput01));
 	getComicPageEpisodes(_searchResultHTML);
 	_searchResultHTML=nil;
-	
-	unhtml(searchResultNames);
 
+	unhtml(searchResultNames);
 	assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames) -- Zero based index
-	setUserInput(2,1); -- Not zero based, lol
+	setUserInput(2,#searchResultNames); -- Not zero based, lol
 end
 
 function unhtml(_passedTable)
@@ -213,38 +220,45 @@ function MyLegGuy_InputInit()
 		-- Fills the lists with first page of results
 		goodShowStatus("Getting initial comic data...");
 
-		_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,1));
-
-		-- First, libcurl follows the redirects that we get when we go to selectedComicUrl. If we want to access other pages, we need the real url. Set selectedComicUrl to the real url
-		local _lastUrlStart = string.find(_searchResultHTML,"canonical",0,true);
-		if (_lastUrlStart==nil) then
-			popupMessage("Error in get true url")
+		-- The URL we got from the search results if fake. When you go to it you're redirected to the true URL. The problem with that is that it strips our URL paramaters (the "?page=x" part). So we need to get the real URL instead of being redirected by the fake URL.
+		-- In this code we don't let curl redirect us automaticlly, we don't do the redirect and then grab where we would've been redirected.
+		downloadString(string.format(URLPREFIX .. selectedComicUrl,1));
+		selectedComicUrl = getLastRedirect();
+		if (selectedComicUrl==nil) then
+			popupMessage("Error in get redirect url, oh no.");
+			os.exit();
 		end
-		_lastUrlStart = string.find(_searchResultHTML,"href",_lastUrlStart,true);
-		_lastUrlStart=_lastUrlStart+6; -- Seek past href
+		selectedComicUrl = (selectedComicUrl .. APPENDPAGEFORMAT); -- Real url
+
+		-- Now that we have the real URL, let's request the last page. To request the last page we just put a giant number for the page number and it'll automaticlly cap. Then we know the max page number! Only problem is that the user starts at the last page by default.
+		_searchResultHTML = downloadString(string.format(selectedComicUrl,9999)); -- 
+		local _lastUrlStart = string.find(_searchResultHTML,"canonical",string.find(_searchResultHTML,"</title>",0,true),true);
+		if (_lastUrlStart==nil) then
+			popupMessage("Error in get true page number");
+		end
+		_lastUrlStart = string.find(_searchResultHTML,"href=",_lastUrlStart,true);
+		_lastUrlStart = _lastUrlStart+6;
+		_lastUrlStart = string.find(_searchResultHTML,"title_no",_lastUrlStart,true);
+		_lastUrlStart = string.find(_searchResultHTML,"page=",_lastUrlStart,true);
+		_lastUrlStart = _lastUrlStart+5;
 		local _lastUrlEnd = string.find(_searchResultHTML,"\"",_lastUrlStart,true);
-		selectedComicUrl = string.sub(_searchResultHTML,_lastUrlStart,_lastUrlEnd-1);
-		-- Remove the &page=1 it ends with
-		_lastUrlStart = string.find(selectedComicUrl,"&page=1",0,true);
-		if (_lastUrlStart==nil) then
-			popupMessage("Error in strip page off. " .. _lastUrlStart);
-		end
-		selectedComicUrl = (string.sub(selectedComicUrl,0,_lastUrlStart-1) .. APPENDPAGEFORMAT);
+		numSearchResultPages = tonumber(string.sub(_searchResultHTML,_lastUrlStart,_lastUrlEnd-1));
 
-
+		-- Get the actual list of episodes that are on the last page
 		getComicPageEpisodes(_searchResultHTML);
-		numSearchResultPages = getTotalPages(_searchResultHTML);
 		_searchResultHTML=nil;
 	
 		assignListData(currentQueueCLists,currentQueueCListsLength,0,genPageListTable(numSearchResultPages))
 		assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames)
-		setUserInput(1,1);
-		setUserInput(2,1);
+		setUserInput(1,numSearchResultPages);
+		setUserInput(2,#searchResultNames);
 	end
 end
 
 function MyLegGuy_Download()
 	print("Download.")
+
+	downloadChapter(searchResultUrls[userInput02])
 
 	--createDirectory(nhentaiMangaRootWithEndSlash);
 	--setUserAgent("Vita-Nathan-Lua-Manga-Downloader/" .. string.format("%02d",getDownloaderVersion()));
@@ -254,6 +268,8 @@ end
 function MyLegGuy_Prompt()
 	-- Cannot download unless referer is set to http://www.webtoons.com
 	setReferer("https://www.webtoons.com");
+	-- I handle redirects manually
+	setRedirects(false);
 
 	--enableDownloadDebugInfo();
 
@@ -289,5 +305,5 @@ function MyLegGuy_Prompt()
 	end
 	
 
-	return false;
+	return true;
 end
