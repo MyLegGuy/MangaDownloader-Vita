@@ -27,16 +27,15 @@ lastSearchTerms="";
 selectedComicUrl="";
 selectedComicName="";
 
+selectedChapterName="";
+selectedChapterUrl="";
+
+-- Format string of where to download pages to. Will be initialized before MyLegGuy_Download
+pageDestFormat="";
+
+
 function downloadChapter(chapterUrl)
 	goodShowStatus("Getting page URLs");
-
-	_chapterDest = (getMangaFolder(true) .. makeFolderFriendly(selectedComicName))
-	createDirectory(_chapterDest);
-	_chapterDest = (_chapterDest .. "/" .. "testFolder");
-	createDirectory(_chapterDest);
-
-	_pageFormat = (_chapterDest .. "/%03d.jpg");
-	createDirectory(_chapterDest);
 
 	_pageData = downloadString(chapterUrl);
 	_pageTableStart = string.find(_pageData,"_viewerBox",0,true);
@@ -60,8 +59,10 @@ function downloadChapter(chapterUrl)
 	for j=1,i do
 		goodShowStatus("Downloading " .. j .. "/" .. i);
 		print(_pageUrlTable[j])
-		downloadFile(_pageUrlTable[j],string.format(_pageFormat,j));
+		downloadFile(_pageUrlTable[j],string.format(pageDestFormat,j));
+		sendJustDownloadedNew();
 	end
+	setDoneDownloading();
 
 	--os.execute("")
 end
@@ -258,7 +259,7 @@ end
 function MyLegGuy_Download()
 	print("Download.")
 
-	downloadChapter(searchResultUrls[userInput02])
+	downloadChapter(selectedChapterUrl)
 
 	--createDirectory(nhentaiMangaRootWithEndSlash);
 	--setUserAgent("Vita-Nathan-Lua-Manga-Downloader/" .. string.format("%02d",getDownloaderVersion()));
@@ -303,7 +304,23 @@ function MyLegGuy_Prompt()
 	if (waitForUserInputs(false)==false) then
 		return false;
 	end
-	
+
+	-- We are ready to download
+
+	selectedChapterName = searchResultNames[userInput02];
+	selectedChapterUrl = searchResultUrls[userInput02];
+	-- Free memory
+	searchResultNames=nil;
+	searchResultUrls=nil;
+
+	local _chapterDest = (getMangaFolder(true) .. makeFolderFriendly(selectedComicName))
+	createDirectory(_chapterDest);
+	_chapterDest = (_chapterDest .. "/" .. makeFolderFriendly(selectedChapterName));
+	createDirectory(_chapterDest);
+	pageDestFormat = (_chapterDest .. "/%03d.jpg");
+	if (isAsIGo==true) then
+		_asIgoFolder = _chapterDest .. "/"
+	end
 
 	return true;
 end
