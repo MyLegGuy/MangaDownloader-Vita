@@ -96,23 +96,25 @@ function getSingleSearchResults(_searchResultHTML)
 	_foundNames={};
 	i = 0;
 	_lastFoundStart = string.find(_searchResultHTML,"search_result",0,true);
-	while (true) do
-		--<a href="/challenge/episodeList?titleNo=whateverId" class="challenge_item N=a:scl.list,i:whateverId,g:en_en">
-		_lastFoundStart = string.find(_searchResultHTML,"/episodeList",_lastFoundStart+1,true);
-		if (_lastFoundStart==nil) then
-			break;
+	if (_lastFoundStart~=nil) then
+		while (true) do
+			--<a href="/challenge/episodeList?titleNo=whateverId" class="challenge_item N=a:scl.list,i:whateverId,g:en_en">
+			_lastFoundStart = string.find(_searchResultHTML,"/episodeList",_lastFoundStart+1,true);
+			if (_lastFoundStart==nil) then
+				break;
+			end
+			if (string.sub(_searchResultHTML,_lastFoundStart-16,_lastFoundStart-13)=="href") then -- Check if this string starts with /challenge
+				_lastFoundStart = _lastFoundStart-10;
+			end
+			i = i+1;
+			_foundUrlEnd = string.find(_searchResultHTML,"\"",_lastFoundStart,true);
+			_foundUrls[i] = string.sub(_searchResultHTML,_lastFoundStart,_foundUrlEnd-1);
+			--<p class="subj">whatever name here</p>
+			_lastFoundStart = string.find(_searchResultHTML,"subj",_lastFoundStart,true);
+			_lastFoundStart = _lastFoundStart+6;
+			_foundNameEnd = string.find(_searchResultHTML,"<",_lastFoundStart,true);
+			_foundNames[i] = string.sub(_searchResultHTML,_lastFoundStart,_foundNameEnd-1);
 		end
-		if (string.sub(_searchResultHTML,_lastFoundStart-16,_lastFoundStart-13)=="href") then -- Check if this string starts with /challenge
-			_lastFoundStart = _lastFoundStart-10;
-		end
-		i = i+1;
-		_foundUrlEnd = string.find(_searchResultHTML,"\"",_lastFoundStart,true);
-		_foundUrls[i] = string.sub(_searchResultHTML,_lastFoundStart,_foundUrlEnd-1);
-		--<p class="subj">whatever name here</p>
-		_lastFoundStart = string.find(_searchResultHTML,"subj",_lastFoundStart,true);
-		_lastFoundStart = _lastFoundStart+6;
-		_foundNameEnd = string.find(_searchResultHTML,"<",_lastFoundStart,true);
-		_foundNames[i] = string.sub(_searchResultHTML,_lastFoundStart,_foundNameEnd-1);
 	end
 	if (i==0) then
 		_foundUrls[1]="";
