@@ -36,7 +36,7 @@ function getChapterList(_passedUrl)
         <div class="title"><span></span><h3>Read 15-sai (ASAGI Ryuu) Online</h3></div>
 	<ul><li>
            <span class="left">
-        <a class="color_0077" href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c005/">
+        <a class="color_0077" href="//www.mangahere.cc/manga/15_sai_asagi_ryuu/c005/">
           15-sai (ASAGI Ryuu) 5            </a>
       <span class="mr6"></span></span>
                 <span class="right">Apr 26, 2016</span>
@@ -78,14 +78,14 @@ end
 
 function getMangaList()
 	showStatus("Getting manga list HTML...");
-	local _tempDownloadedHTML = downloadString("https://www.mangahere.co/mangalist/");
+	local _tempDownloadedHTML = downloadString("https://www.mangahere.cc/mangalist/");
 	showStatus("Parsing manga list HTML...");
 	local _firstFound;
 	local _secondFound;
 	_firstFound = string.find(_tempDownloadedHTML,"list_manga",0,true);
 	while (true) do
 		--manga_info
-		--<li><a class="manga_info" rel="&quot;Aishiteru&quot;, Uso Dakedo." href="//www.mangahere.co/manga/aishiteru_uso_dakedo/"><span></span>&quot;Aishiteru&quot;, Uso Dakedo.</a></li>
+		--<li><a class="manga_info" rel="&quot;Aishiteru&quot;, Uso Dakedo." href="//www.mangahere.cc/manga/aishiteru_uso_dakedo/"><span></span>&quot;Aishiteru&quot;, Uso Dakedo.</a></li>
 		_firstFound = string.find(_tempDownloadedHTML,"manga_info",_firstFound+1,true);
 		if (_firstFound==nil) then
 			break;
@@ -123,8 +123,8 @@ function getWebpagesImageRaw(_tempDownloadedHTML)
 	-- Relevant section
 	--[[
 		<section class="read_img" id="viewer">
-		<a href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/29.html" onclick="return next_page();">
-				<img id="loading" class="loadingImg" src="//www.mangahere.co/media/images/loading.gif" />
+		<a href="//www.mangahere.cc/manga/15_sai_asagi_ryuu/c001/29.html" onclick="return next_page();">
+				<img id="loading" class="loadingImg" src="//www.mangahere.cc/media/images/loading.gif" />
 			<img src="https://mhcdn.secure.footprint.net/store/manga/17947/001.0/compressed/vimg028.jpg?token=f17a6e6a59029591129882a40dae1b8fdd953fb7&ttl=1509246000" onload="loadImg(this)" style="display: none;margin:0 auto;" width="869" id="image" alt="15-sai (ASAGI Ryuu) 1 Page 28" />
 		</a>
 		
@@ -144,11 +144,11 @@ end
 function getChapterTotalPages(_tempDownloadedHTML)
 	--[[
 	<select class="wid60" onchange="change_page(this)">
-	<option value="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/" >1</option>
-	<option value="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/2.html" >2</option>
+	<option value="//www.mangahere.cc/manga/15_sai_asagi_ryuu/c001/" >1</option>
+	<option value="//www.mangahere.cc/manga/15_sai_asagi_ryuu/c001/2.html" >2</option>
 	...
 	</select>
-	<a href="//www.mangahere.co/manga/15_sai_asagi_ryuu/c001/29.html" class="next_page"></a>]]
+	<a href="//www.mangahere.cc/manga/15_sai_asagi_ryuu/c001/29.html" class="next_page"></a>]]
 	local _firstFound = string.find(_tempDownloadedHTML,"wid60",1,true);
 	if (_firstFound==nil) then
 		if (string.find(_tempDownloadedHTML,"has been licensed. It's not available in MangaHere",1,true)~=nil) then
@@ -231,20 +231,20 @@ function MyLegGuy_Prompt()
 	popupMessage("Support for this site is not great. Downloading does work, but Vitashell has trouble loading the downloaded images properly, so you can't even view them.");
 	disableSSLVerification();
 	
-	--local name, url = getChapterList("www.mangahere.co/manga/15_sai_asagi_ryuu/")
+	--local name, url = getChapterList("www.mangahere.cc/manga/15_sai_asagi_ryuu/")
 	--for i=1,#name do
 	--	print(name[i])
 	--	print(url[i])
 	--end
-	--doChapterBroad("www.mangahere.co/manga/15_sai_asagi_ryuu/",url[2],name[2],"test good stuff\n");
+	--doChapterBroad("www.mangahere.cc/manga/15_sai_asagi_ryuu/",url[2],name[2],"test good stuff\n");
 	
-	--http://www.mangahere.co/manga/15_sai_asagi_ryuu/c001/3.html
+	--http://www.mangahere.cc/manga/15_sai_asagi_ryuu/c001/3.html
 	getMangaList();
 	--happy = loadImageFromUrl("https://www.google.com/images/branding/googlelogo/1x/googlelogo_color_272x92dp.png",FILETYPE_PNG)
 	--photoViewer(happy)
 	--freeTexture(happy)
 	
-	--downloadFile("https://www.mangahere.co/mangalist/","./testdownloaded4")
+	--downloadFile("https://www.mangahere.cc/mangalist/","./testdownloaded4")
 	
 	userInputQueue("Manga","Choose the manga series you want.",INPUTTYPELIST)
 	if (isAsIGo==false) then

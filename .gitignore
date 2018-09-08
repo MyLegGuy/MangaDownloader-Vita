@@ -60,3 +60,4 @@ _DevStuff/NOSEND/
 UpdateVPKContents.bat
 
 lib/Linux
+lib/Vita/liblua.a
