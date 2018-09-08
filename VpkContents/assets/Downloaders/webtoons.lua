@@ -3,16 +3,9 @@
 -- multiple pages
 --https://www.webtoons.com/search?keyword=slice%20of%20life&searchType=CHALLENGE
 
---[[
-IDEA:
-I think I'm having trouble getting other pages of the comics because the url variables are being discarded when the website redirects me to the specific page for the English version
-	- The downloaded HTML should contain my new url, apply the page number data to that
-	- Also I deleted STARTCOMICSEPISODELISTONLASTPAGE because I can't jump to pages without getting the most recent chapter page first. So this variable is pointless because it wouldn't save time
-]]
-
 APPENDPAGEFORMAT = "&page=%d"
 SEARCHFORMATURL = ("https://www.webtoons.com/search?keyword=%s" .. APPENDPAGEFORMAT)
--- Applied to gotten comic URLs
+-- Applied to fake comic URLs
 URLPREFIX = "https://www.webtoons.com"
 
 SCRIPTVERSION=1;
@@ -129,9 +122,8 @@ function getSingleSearchResults(_searchResultHTML)
 end
 
 function updateSearchLists()
-	assignListData(currentQueueCLists,currentQueueCListsLength,1,genPageListTable(numSearchResultPages))
-	assignListData(currentQueueCLists,currentQueueCListsLength,2,searchResultNames)
-	setUserInput(3,1);
+	assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames)
+	setUserInput(2,1);
 end
 
 -- Search with terms
@@ -142,19 +134,13 @@ function endSearchInput()
 	_searchResultHTML = downloadString(string.format(SEARCHFORMATURL,lastSearchTerms,1))
 	-----------------------
 	searchResultNames, searchResultUrls = getSingleSearchResults(_searchResultHTML)
-	-----------------------
-	numSearchResultPages = getTotalPages(_searchResultHTML);
+	unhtml(searchResultNames);
 	-----------------------
 	setUserInput(2,1);
 	updateSearchLists()
 end
 
-function endSearchPageInput()
-	goodShowStatus("Getting search result page " .. userInput02);
-	_searchResultHTML = downloadString(string.format(SEARCHFORMATURL,lastSearchTerms,userInput02))
-	searchResultNames, searchResultUrls = getSingleSearchResults(_searchResultHTML)
-	updateSearchLists()
-end
+
 
 function genPageListTable(_numPages)
 	if (_numPages==0) then
@@ -202,16 +188,22 @@ end
 
 function endEpisodePageSelect()
 	goodShowStatus("Getting comic episodes on page " .. userInput01);
-	_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,userInput01));
+	_searchResultHTML = downloadString(string.format(selectedComicUrl,userInput01));
 	getComicPageEpisodes(_searchResultHTML);
 	_searchResultHTML=nil;
 	
-	for i=1,#searchResultNames do
-		print(searchResultNames[i])
-	end
+	unhtml(searchResultNames);
 
 	assignListData(currentQueueCLists,currentQueueCListsLength,1,searchResultNames) -- Zero based index
 	setUserInput(2,1); -- Not zero based, lol
+end
+
+function unhtml(_passedTable)
+	local k=0;
+	local _cachedSize = #_passedTable;
+	for k=1,_cachedSize do
+		_passedTable[k] = fixHtmlStupidity(_passedTable[k]);
+	end
 end
 
 function MyLegGuy_InputInit()
@@ -220,6 +212,24 @@ function MyLegGuy_InputInit()
 		goodShowStatus("Getting initial comic data...");
 
 		_searchResultHTML = downloadString(string.format(URLPREFIX .. selectedComicUrl,1));
+
+		-- First, libcurl follows the redirects that we get when we go to selectedComicUrl. If we want to access other pages, we need the real url. Set selectedComicUrl to the real url
+		local _lastUrlStart = string.find(_searchResultHTML,"canonical",0,true);
+		if (_lastUrlStart==nil) then
+			popupMessage("Error in get true url")
+		end
+		_lastUrlStart = string.find(_searchResultHTML,"href",_lastUrlStart,true);
+		_lastUrlStart=_lastUrlStart+6; -- Seek past href
+		local _lastUrlEnd = string.find(_searchResultHTML,"\"",_lastUrlStart,true);
+		selectedComicUrl = string.sub(_searchResultHTML,_lastUrlStart,_lastUrlEnd-1);
+		-- Remove the &page=1 it ends with
+		_lastUrlStart = string.find(selectedComicUrl,"&page=1",0,true);
+		if (_lastUrlStart==nil) then
+			popupMessage("Error in strip page off. " .. _lastUrlStart);
+		end
+		selectedComicUrl = (string.sub(selectedComicUrl,0,_lastUrlStart-1) .. APPENDPAGEFORMAT);
+
+
 		getComicPageEpisodes(_searchResultHTML);
 		numSearchResultPages = getTotalPages(_searchResultHTML);
 		_searchResultHTML=nil;
@@ -249,14 +259,9 @@ function MyLegGuy_Prompt()
 	ResetUserChoices();
 	userInput01="";
 	userInput02=0;
-	userInput03=0;
 	userInputQueue("Search term","Choose this. Enter the name of what you're looking for.",INPUTTYPESTRING);
-	userInputQueue("Search result page","There may be multiple pages of results. Choose one here.",INPUTTYPELIST);
 	userInputQueue("Search results","Select the comic series.",INPUTTYPELIST);
-	
 	EndInput01 = endSearchInput;
-	EndList02 = endSearchPageInput;
-
 	if (waitForUserInputs(false)==false or userInput01=="") then
 		return false;
 	end
@@ -266,8 +271,8 @@ function MyLegGuy_Prompt()
 	EndInput01=nil
 	EndList02=nil;
 	-- Save the data we need, dispose the rest
-	selectedComicUrl = (searchResultUrls[userInput03] .. APPENDPAGEFORMAT);
-	selectedComicName = searchResultNames[userInput03];
+	selectedComicUrl = (searchResultUrls[userInput02] .. APPENDPAGEFORMAT);
+	selectedComicName = searchResultNames[userInput02];
 	searchResultUrls=nil;
 	searchResultNames=nil;
 	--
