@@ -440,6 +440,8 @@
 			if (shortNameQueue[i]!=NULL){
 				free(shortNameQueue[i]);
 				free(longNameQueue[i]);
+				shortNameQueue[i]=NULL;
+				longNameQueue[i]=NULL;
 			}
 		}
 	}
@@ -451,8 +453,8 @@
 		freeQueue(MAXQUEUE);
 		currentQueue=0;
 		numberOfPrompts=0;
-		}
-		char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
+	}
+	char* getOptionsFileLocation(int _slot, int _specificOptionsNumber){
 		char* _compiledOptionsPath = malloc(strlen(optionsLocation)+strlen(currentScriptName)+2+1+3+1); // Here lies 2 hours of my time. I forgot about the dash, didn't add a byte for that. RIP.
 		sprintf(_compiledOptionsPath,"%s%s%02d-%03d",optionsLocation,currentScriptName,_specificOptionsNumber,_slot);
 		return _compiledOptionsPath;
@@ -541,7 +543,6 @@
 		}
 		return NULL;
 	}
-	#include <unistd.h>
 	void doScript(char* luaFileToUse, char _asIgo){
 		resetScriptData();
 		currentScriptName=luaFileToUse;
@@ -554,7 +555,6 @@
 			lua_pushboolean(L,0);
 		}
 		lua_setglobal(L,"isAsIGo");
-
 
 		char luaFilenameComplete[strlen(luaFileToUse)+strlen(downloadersLocation)+5];
 		strcpy(luaFilenameComplete,downloadersLocation);
