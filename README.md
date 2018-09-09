@@ -1,12 +1,14 @@
-# MangaDownloader-Vita
-## Download manga straight to your PS Vita.
+## MangaDownloader-Vita
+### Download manga straight to your PS Vita.
 
-### Supported sites:
-* mangareader.net
+#### Supported sites:
 * dynasty-scans.com
-* A little bonus.
+* mangareader.net
+* webtoons.com
+* mangahere.cc (Images can be downloaded, but VitaShell has trouble with them.)
+* Maybe a little bonus?
 
-### How to use
+#### How to use
 It's moron-proof.
 
 1. Select "Download."
@@ -24,7 +26,7 @@ Refer to the digital manual for more information. (Can be accessed from the Live
 **Some images crash VitaShell. They're valid and downloaded properly. I don't know how to fix this right now.**
 
 
-### Support
+#### Support
 
 You may ask questions in the [**issues**](https://github.com/MyLegGuy/MangaDownloader-Vita/issues) section.
 Make sure you check the manual first, though.
