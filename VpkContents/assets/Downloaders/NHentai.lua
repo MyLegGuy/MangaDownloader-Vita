@@ -91,12 +91,18 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
 
 	local _numPageEnd = string.find(_downloadedGalleryJSON,",",_firstFind+11,true);
-	if (_numPageEnd==nil) then -- Sometimes it's a bracket
-		_numPageEnd = string.find(_downloadedGalleryJSON,"}",_firstFind+11,true);
+	local _possibleAltEnd = string.find(_downloadedGalleryJSON,"}",_firstFind+11,true);
+	-- Whichever ends the array first
+	if (_possibleAltEnd~=nil) then
+		if (_numPageEnd==nil or _possibleAltEnd<_numPageEnd) then
+			_numPageEnd=_possibleAltEnd;
+		end
+	else
 		if (_numPageEnd==nil) then
-			showStatus("Could not parse _numPageEnd. Will now crash.");
+			popupMessage("Error parse with _numPageEnd, will now crash.");
 		end
 	end
+	print(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1))
 	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1));
 
 	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
