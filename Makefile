@@ -3,7 +3,7 @@ TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
 OBJS     = src/main.o
 
-LIBS = -lGeneralGood -lvita2d -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
+LIBS = -lGeneralGood -lvita2dfixed -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
 	-lSceDisplay_stub -lSceGxm_stub -lSceSysmodule_stub -lSceCtrl_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -llua \
 	-lm -lcurl -lssl -lcrypto -lz -lpthread
@@ -49,3 +49,6 @@ vpksend: $(TARGET).vpk
 send: eboot.bin
 	curl -T eboot.bin ftp://192.168.1.229:1337/ux0:/app/$(TITLE_ID)/
 	@echo "Sent."
+
+stuffvpk:
+	@7z a MangaDownloader.vpk ./VpkContents/*

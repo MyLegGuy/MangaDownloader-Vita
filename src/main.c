@@ -4,6 +4,8 @@ TODO - Can't exit download mode and then go back to it.
 TODO - Option to use uma0.
 TODO - Include everything that my 3ds one had.
 TODO - More site support. I made a list.
+
+To make things faster, add the option to remember asIgo selection
 */
 #define VERSION 3
 #define VERSIONSTRING "v2.4"

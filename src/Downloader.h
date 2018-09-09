@@ -992,6 +992,8 @@
 							pushUserInput(passedState,userInputResults[_selection],inputTypeQueue[_selection],_selection+1);
 							callInputFinish(passedState,_selection+1);
 						}
+					}else{
+						popupMessage("Error - No input type?",1,0);
 					}
 				}
 			}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
@@ -1037,7 +1039,6 @@
 				}
 				goodDrawTextColored(cursorWidth+5,currentTextHeight*(i+2),"Done",fontSize,COLOROPTION);
 			}else{
-	
 				goodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
 			}
 			endDrawing();
