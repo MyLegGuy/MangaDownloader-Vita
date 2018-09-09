@@ -340,11 +340,11 @@ char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) 
 		int horizontal = isHorizontal(rad);
 		// Previous/next image.
 		//if ((horizontal==0 && ((pressed_buttons & SCE_CTRL_LEFT) || (pressed_buttons & SCE_CTRL_RIGHT))) || (horizontal==0 && (pressed_buttons & SCE_CTRL_UP || pressed_buttons & SCE_CTRL_DOWN))) {
-		if ((horizontal==1 && ((pressed_buttons & SCE_CTRL_RIGHT) || (pressed_buttons & SCE_CTRL_LEFT))) || (horizontal==0 && ((pressed_buttons & SCE_CTRL_DOWN) || (pressed_buttons & SCE_CTRL_UP)))){
+		if ((horizontal==1 && ((pressed_buttons & SCE_CTRL_RIGHT) || (pressed_buttons & SCE_CTRL_LEFT))) || (horizontal==0 && ((pressed_buttons & SCE_CTRL_DOWN) || (pressed_buttons & SCE_CTRL_UP) || (pressed_buttons & SCE_CTRL_TRIANGLE) || (pressed_buttons & SCE_CTRL_SQUARE)))){
 			if (_isSingleImageMode==1){
 				break;
 			}
-			signed char _isNextPage = (((horizontal==1 && (pressed_buttons & SCE_CTRL_RIGHT)) || (horizontal==0 && (pressed_buttons & SCE_CTRL_DOWN))));
+			signed char _isNextPage = (((horizontal==1 && ((pressed_buttons & SCE_CTRL_RIGHT) || (pressed_buttons & SCE_CTRL_TRIANGLE))) || (horizontal==0 && (pressed_buttons & SCE_CTRL_DOWN))));
 			if (_isNextPage==0){
 				_isNextPage=-1;
 			}
