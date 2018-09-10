@@ -3,9 +3,9 @@
 
 #### Supported sites:
 * dynasty-scans.com
+* mangahere.cc
 * mangareader.net
 * webtoons.com
-* mangahere.cc (Images can be downloaded, but VitaShell has trouble with them.)
 * Maybe a little bonus?
 
 #### How to use
@@ -23,10 +23,7 @@ Refer to the digital manual for more information. (Can be accessed from the Live
 
 **Downloads are saved to ux0:data/LUAMANGAS/Manga/.**
 
-**Some images crash VitaShell. They're valid and downloaded properly. I don't know how to fix this right now.**
-
-
 #### Support
 
 You may ask questions in the [**issues**](https://github.com/MyLegGuy/MangaDownloader-Vita/issues) section.
-Make sure you check the manual first, though.
+Make sure you check the digital manual first, though.
