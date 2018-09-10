@@ -291,7 +291,6 @@ void readPad() {
 // No need to free a texture afterwards if you pass one to it.
 // _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
 char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) {
-	WriteToDebugFile("photoviewer used");
 	if (_currentRelativeFilename!=NULL){
 		// Don't want to touch a buffer I don't know about.
 		char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);

@@ -228,7 +228,6 @@ function MyLegGuy_Download()
 	setDoneDownloading()
 end
 function MyLegGuy_Prompt()
-	popupMessage("Support for this site is not great. Downloading does work, but Vitashell has trouble loading the downloaded images properly, so you can't even view them.");
 	disableSSLVerification();
 	
 	--local name, url = getChapterList("www.mangahere.cc/manga/15_sai_asagi_ryuu/")
