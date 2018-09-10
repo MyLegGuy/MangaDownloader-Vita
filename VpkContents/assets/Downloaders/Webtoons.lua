@@ -139,7 +139,7 @@ end
 
 -- Search with terms
 function endSearchInput()
-	goodShowStatus("Getting search results...");
+	showStatus("Getting search results...");
 	-----------------------
 	lastSearchTerms = string.gsub(userInput01," ","+");
 	_searchResultHTML = downloadString(string.format(SEARCHFORMATURL,lastSearchTerms,1))
@@ -198,7 +198,7 @@ function getComicPageEpisodes(_searchResultHTML)
 end
 
 function endEpisodePageSelect()
-	goodShowStatus("Getting comic episodes on page " .. userInput01);
+	showStatus("Getting comic episodes on page " .. userInput01);
 	_searchResultHTML = downloadString(string.format(selectedComicUrl,userInput01));
 	getComicPageEpisodes(_searchResultHTML);
 	_searchResultHTML=nil;
@@ -219,7 +219,7 @@ end
 function MyLegGuy_InputInit()
 	if (currentInputScreen==1) then
 		-- Fills the lists with first page of results
-		goodShowStatus("Getting initial comic data...");
+		showStatus("Getting initial comic data...");
 
 		-- The URL we got from the search results if fake. When you go to it you're redirected to the true URL. The problem with that is that it strips our URL paramaters (the "?page=x" part). So we need to get the real URL instead of being redirected by the fake URL.
 		-- In this code we don't let curl redirect us automaticlly, we don't do the redirect and then grab where we would've been redirected.
