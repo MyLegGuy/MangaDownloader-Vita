@@ -1,11 +1,9 @@
 /*
-List ( in order of importance )
-TODO - Can't exit download mode and then go back to it.
 TODO - Option to use uma0.
 TODO - Include everything that my 3ds one had.
 TODO - More site support. I made a list.
-
-To make things faster, add the option to remember asIgo selection
+TODO - To make things faster, add the option to remember asIgo selection
+TODO - Ability to delete all .lastSelection files
 */
 #define VERSION 3
 #define VERSIONSTRING "v2.4"
@@ -319,19 +317,15 @@ signed int searchCharArray(char** _passedArray, int _passedLength, char* _search
 void init(){
 	ClearDebugFile();
 	initGraphics(640,480, &screenWidth, &screenHeight);
-	// Is file are do exist?
-	#if PLATFORM == PLAT_VITA
-		if (checkFileExist("app0:assets/LiberationSans-Regular.ttf")==0){
-			loadFont("sa0:data/font/pvf/ltn0.pvf");
-			currentTextHeight = textHeight(fontSize);
-			popupMessage("Missing font file. Did you remember to put contents of VpkContents folder into VPK?",1,0);
-		}
-	#endif
+	
 	// Text
 	fontSize=30;
-	fixPath(CONSTANTFONTFILE,tempPathFixBuffer,TYPE_EMBEDDED);
-	loadFont(tempPathFixBuffer);
-
+	#if PLATFORM != PLAT_VITA
+		fixPath("assets/LiberationSans-Regular.ttf",tempPathFixBuffer,TYPE_EMBEDDED);
+		loadFont(tempPathFixBuffer);
+	#else
+		loadFont("sa0:data/font/pvf/jpn0.pvf");
+	#endif
 	currentTextHeight = textHeight(fontSize);
 	cursorWidth = textWidth(fontSize,">");
 	// Make data folder
