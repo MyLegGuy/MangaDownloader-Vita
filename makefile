@@ -1,7 +1,7 @@
 TITLE_ID = VSDK00001
 TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
-OBJS     = src/main.o
+OBJS     = src/main.o src/fpsCapper.o src/keyboardCode.o src/linkedList.o src/netCode.o src/openBSDstrcharstr.o
 
 LIBS = -lGeneralGood -lvita2dfixed -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
 	-lSceDisplay_stub -lSceGxm_stub -lSceSysmodule_stub -lSceCtrl_stub \

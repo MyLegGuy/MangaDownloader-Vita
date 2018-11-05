@@ -13,12 +13,7 @@ TODO - Ability to delete all .lastSelection files
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
-// main.h
-	char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion);
-	char* getFileExtention(char* _filename, int _extentionLength);
-	void WriteIntToDebugFile(int a);
-	void WriteToDebugFile(const char* stuff);
-	void alphabetizeList(char** _passedList,int _totalFileListLength);
+#include "main.h"
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 255
 
@@ -34,10 +29,10 @@ TODO - Ability to delete all .lastSelection files
 #include "GeneralGoodGraphics.h"
 #include "GeneralGoodText.h"
 #include "GeneralGoodImages.h"
-#include "FpsCapper.h"
-#include "KeyboardCode.h"
-#include "OpenBSDstrcharstr.h"
-#include "LinkedList.h"
+#include "fpsCapper.h"
+#include "keyboardCode.h"
+#include "openBSDstrcharstr.h"
+#include "linkedList.h"
 int currentTextHeight=0;
 int screenHeight;
 int screenWidth;
@@ -45,6 +40,10 @@ int cursorWidth;
 #include "photo.h"
 #include "Downloader.h"
 char* dataFolderRoot;
+
+char* ANDROIDPACKAGENAME = "com.mylegguy.lua.manga";
+// 9 characters
+char* VITAAPPID = "LUAMANGAS";
 /////////////////////////////////////////////////////////
 void XOutFunction(){
 	exit(0);

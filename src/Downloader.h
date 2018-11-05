@@ -53,7 +53,7 @@
 	// main.h
 		void WriteToDebugFile(const char* stuff);
 		void WriteIntToDebugFile(int a);
-	#include "Download.h"
+	#include "netCode.h"
 	/*============================================================================*/
 	lua_State* L;
 	// Fixed paths
@@ -79,7 +79,7 @@
 	void nothingFunction(){
 	}
 	void quitApplication(){
-		curl_easy_cleanup(curl_handle);
+		cleanupNetCode();
 	}
 	int calculateListOffset(int _selection, int _optionsPerScreen, int _listSize){
 		int _result=0;
@@ -1176,7 +1176,8 @@
 		L = luaL_newstate();
 		luaL_openlibs(L);
 		MakeLuaUseful();
-		initDownload();
+		fixPath(CONSTANTCERTFILELOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
+		initDownload(checkFileExist(tempPathFixBuffer) ? tempPathFixBuffer : NULL);
 		// Construct fixed paths
 		fixPath(CONSTANTDOWNLOADERSLOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
 		downloadersLocation = malloc(strlen(tempPathFixBuffer)+1);

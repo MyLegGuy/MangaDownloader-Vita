@@ -1,13 +1,7 @@
 #ifndef NATHANHAPPYCONFIG
 #define NATHANHAPPYCONFIG
-	#ifdef ISCOMPILINGLIBRARY
-		extern char* ANDROIDPACKAGENAME;
-		extern char* VITAAPPID;
-	#else
-		char* ANDROIDPACKAGENAME = "com.mylegguy.lua.manga";
-		// 9 characters
-		char* VITAAPPID = "LUAMANGAS";
-	#endif
+	extern char* ANDROIDPACKAGENAME;
+	extern char* VITAAPPID;
 	
 	#define PLAT_VITA 1
 	#define PLAT_COMPUTER 2

@@ -35,6 +35,7 @@
 #endif
 
 #if PLATFORM == PLAT_VITA
+	#include <stdio.h>
 	typedef struct{
 		char* filename; // Malloc
 		int internalPosition;
