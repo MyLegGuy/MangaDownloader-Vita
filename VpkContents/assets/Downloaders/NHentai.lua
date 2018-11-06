@@ -70,6 +70,7 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 	_parsedGallery.coverFormat="";
 	_parsedGallery.num_pages=0;
 	_parsedGallery.media_id="0";
+	_parsedGallery.langPrefix="";
 
 	local _firstFind=0;
 	local _secondFind=0;
@@ -87,7 +88,7 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 	--_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
 	--_parsedGallery.prettyName = fixUtf8InString(string.sub(_downloadedGalleryJSON,_firstFind+10,_secondFind-1));
 
-	_parsedGallery.prettyName = fixUtf8InString(parseEscapable(_downloadedGalleryJSON,string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true)+10));
+	_parsedGallery.prettyName = fixHtmlStupidity(fixUtf8InString(parseEscapable(_downloadedGalleryJSON,string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true)+10)));
 
 	-- Find number of pages
 	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
@@ -118,6 +119,25 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 		_firstFind = string.find(_downloadedGalleryJSON,"\"t\"",_firstFind+1,true);
 		_parsedGallery.pagesFormat[i] = string.sub(_downloadedGalleryJSON,_firstFind+5,_firstFind+5);
 	end
+
+	local _foundLanguage = nil;
+	repeat
+		-- Find the first language, hope it's the important one
+		_firstFind = string.find(_downloadedGalleryJSON,"\"type\":\"language\"",_firstFind,true)+16;
+		_firstFind = string.find(_downloadedGalleryJSON,"\"name\"",_firstFind,true)+8; -- "name":"
+		_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind,true);
+		_foundLanguage = string.sub(_downloadedGalleryJSON,_firstFind,_secondFind-1);
+
+		if (_foundLanguage=="japanese") then
+			_parsedGallery.langPrefix = "jp";
+		elseif (_foundLanguage=="english") then
+			_parsedGallery.langPrefix = "eng";
+		elseif (_foundLanguage=="chinese") then
+			_parsedGallery.langPrefix = "chi";
+		else
+			_parsedGallery.langPrefix = _foundLanguage;
+		end
+	until _foundLanguage~="translated";
 	return _parsedGallery;
 end
 
@@ -232,7 +252,7 @@ function InitList03(isFirstTime)
 			table.insert(_returnTable,NORESULTSTRING);
 		else
 			for i=1,_cachedNumber do
-				table.insert(_returnTable,(currentParsedSearchResults[i].prettyName));
+				table.insert(_returnTable,"[" .. currentParsedSearchResults[i].langPrefix .. "]" ..(currentParsedSearchResults[i].prettyName));
 			end
 		end
 		return _returnTable;
@@ -243,6 +263,7 @@ end
 function getSearch(_passedSearchTerms, _passedPageNumber)
 	showStatus("Getting search JSON...")
 	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
+	print("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber);
 	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
 end
 
