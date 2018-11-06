@@ -127,12 +127,12 @@ function parseSearchResults(_searchResultJSON)
 
 	local _totalParsedResults = {};
 	local i=1;
+	showStatus("Parsing results ");
 	while true do
 		local _tempFound = string.find(_searchResultJSON,"upload_date",_lastFoundUploadDateIndex+1,true);
 		if (_tempFound==nil) then
 			break;
 		end
-		showStatus("Parsing result " .. i)
 		table.insert(_totalParsedResults,parseGalleryString(_searchResultJSON,_lastFoundUploadDateIndex));
 		i=i+1;
 		_lastFoundUploadDateIndex = _tempFound;
