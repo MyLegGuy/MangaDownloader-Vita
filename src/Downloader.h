@@ -1137,6 +1137,35 @@ int L_getLastRedirect(lua_State* passedState){
 		return 0;
 	}
 }
+// Pass it something like "b\"\\a" and get ""\"
+// string, start pos
+// Point is to pass the json string and the position in that json string
+int L_parseString(lua_State* passedState){
+	const char* _masterString = lua_tostring(passedState,1);
+	char _tempBuffer[256];
+	_tempBuffer[0]='\0';
+	int i = lua_tonumber(passedState,2)-1;
+	char _isEscaped=0;
+	int _newStringPos=0;
+	while (_masterString[i]!='\0'){
+		if (_isEscaped){
+			_tempBuffer[_newStringPos++]=_masterString[i];
+			_isEscaped=0;
+		}else{
+			if (_masterString[i]=='\"'){
+				_tempBuffer[_newStringPos]='\0';
+				break;
+			}else if (_masterString[i]=='\\'){
+				_isEscaped=1;
+			}else{
+				_tempBuffer[_newStringPos++]=_masterString[i];
+			}
+		}
+		++i;
+	}
+	lua_pushstring(passedState,_tempBuffer);
+	return 1;
+}
 void MakeLuaUseful(){
 	LUAREGISTER(L_downloadString,"downloadString");
 	LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1165,6 +1194,7 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_setReferer,"setReferer");
 	LUAREGISTER(L_setRedirects,"setRedirects");
 	LUAREGISTER(L_getLastRedirect,"getLastRedirect");
+	LUAREGISTER(L_parseString,"parseEscapable");
 	//
 	LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 	LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

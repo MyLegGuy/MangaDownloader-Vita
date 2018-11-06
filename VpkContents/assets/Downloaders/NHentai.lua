@@ -83,9 +83,11 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 
 	-- Find the pretty name
 	-- "pretty":"Festa, Festa, Festa!!! DereMas Soushuuhen"
-	_firstFind = string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true);
-	_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
-	_parsedGallery.prettyName = fixUtf8InString(string.sub(_downloadedGalleryJSON,_firstFind+10,_secondFind-1));
+	--_firstFind = string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true);
+	--_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
+	--_parsedGallery.prettyName = fixUtf8InString(string.sub(_downloadedGalleryJSON,_firstFind+10,_secondFind-1));
+
+	_parsedGallery.prettyName = fixUtf8InString(parseEscapable(_downloadedGalleryJSON,string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true)+10));
 
 	-- Find number of pages
 	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
@@ -102,7 +104,6 @@ function parseGalleryString(_downloadedGalleryJSON, _startIndex)
 			popupMessage("Error parse with _numPageEnd, will now crash.");
 		end
 	end
-	print(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1))
 	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1));
 
 	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
@@ -242,7 +243,6 @@ end
 function getSearch(_passedSearchTerms, _passedPageNumber)
 	showStatus("Getting search JSON...")
 	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
-	--downloadFile("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=1","./testdownloaded3")
 	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
 end
 
