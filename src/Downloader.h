@@ -152,7 +152,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 		}
 	}
 	intptr_t _valueToReturn=-1;
-	int _framesUntilScroll=60;
+	int _framesUntilScroll=30;
 	int _scrollCharOffset=0;
 	char _scrollStatus=SCROLLSTATUS_NEEDCHECK;
 	while (1){
@@ -635,6 +635,14 @@ char* chooseScript(){
 		}
 	}
 	return _filenames[_userChosenFileIndex-1];
+}
+// char as in an actual character
+int hexToDecimal(char _hexChar){
+	if (_hexChar>='A'){
+		return _hexChar-'A'+10;
+	}else{
+		return _hexChar-'0';
+	}
 }
 /*============================================================================*/
 // url, filepath
@@ -1149,7 +1157,13 @@ int L_parseString(lua_State* passedState){
 	int _newStringPos=0;
 	while (_masterString[i]!='\0'){
 		if (_isEscaped){
-			_tempBuffer[_newStringPos++]=_masterString[i];
+			if (_masterString[i]=='u'){ // \uxxxx
+				// TODO - Here I could convert it to utf8, but I'll leave that to Lua because it's easier. Doing this in C would be faster.
+				_tempBuffer[_newStringPos++]='\\';
+				_tempBuffer[_newStringPos++]='u';
+			}else{
+				_tempBuffer[_newStringPos++]=_masterString[i];
+			}
 			_isEscaped=0;
 		}else{
 			if (_masterString[i]=='\"'){

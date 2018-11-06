@@ -263,7 +263,6 @@ end
 function getSearch(_passedSearchTerms, _passedPageNumber)
 	showStatus("Getting search JSON...")
 	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
-	print("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber);
 	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
 end
 
