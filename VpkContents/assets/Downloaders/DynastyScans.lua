@@ -32,10 +32,17 @@ function onListMoreInfo__stuff(_passedListId, _passedListEntry)
 	if ((_passedListId)==1) then
 		if (isDoujin==true) then
 			popupMessage("None avalible.")
+			return;
 		end
 		showStatus("Getting cover...")
-		_tempLoadedCover = loadImageFromUrl(getCoverUrl(seriesListUrl[_passedListEntry]),FILETYPE_JPG)
-		photoViewer(_tempLoadedCover)
+
+		local _possibleCover = getCoverUrl(seriesListUrl[_passedListEntry]);
+		if (_possibleCover~=nil) then
+			_tempLoadedCover = loadImageFromUrl(_possibleCover,FILETYPE_JPG)
+			photoViewer(_tempLoadedCover)
+		else
+			popupMessage("No cover.")
+		end
 		-- No, really, don't free this. It's already been freed.
 		--freeTexture(_tempLoadedCover)
 	end
@@ -189,9 +196,11 @@ end
 
 function getCoverUrl(coverSeriesPartUrl)
 	local _coverHtml = downloadString("https://dynasty-scans.com" .. coverSeriesPartUrl);
-	local lastFound=-1;
+	local lastFound=string.find(_coverHtml,"thumbnail",01,true);
+	if (lastFound==nil) then
+		return nil;
+	end
 	--<img alt="Yuyushiki_04" class="thumbnail" src="/system/tag_contents_covers/000/002/527/medium/Yuyushiki_04.jpg?1371254739">
-	lastFound = string.find(_coverHtml,"thumbnail",lastFound+1,true);
 	local firstQuotationMark = string.find(_coverHtml,"\"",lastFound+11,true);
 	lastFound = string.find(_coverHtml,"\"",firstQuotationMark+1,true);
 	return ("https://dynasty-scans.com" .. string.sub(_coverHtml,firstQuotationMark+1,lastFound-1));
@@ -200,7 +209,10 @@ end
 function DownloadCover(downloadLocation, coverSeriesPartUrl)
 	if (shouldDownloadCovers()==true) then
 		if (fileExists(downloadLocation .. "/cover.jpg")==false) then
-			downloadFile(getCoverUrl(coverSeriesPartUrl),(downloadLocation .. "/cover.jpg"))
+			local _possibleCover = getCoverUrl(coverSeriesPartUrl);
+			if (_possibleCover~=nil) then
+				downloadFile(_possibleCover,(downloadLocation .. "/cover.jpg"))
+			end
 		end
 	end
 end
