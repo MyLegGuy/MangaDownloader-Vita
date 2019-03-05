@@ -15,7 +15,7 @@ lua_setglobal(L,y);
 #define INPUTTYPELIST 3
 #define INPUTTYPELISTMULTI 4
 #define MAXQUEUE 5
-#define SCROLLCHARSPEED 10
+#define SCROLLCHARSPEED 5
 // Customizable colors confirmed?!
 #define COLOROPTION 255,255,255
 #define COLORMARKED 255,100,0
@@ -80,6 +80,13 @@ void nothingFunction(){
 void quitApplication(){
 	cleanupNetCode();
 }
+void lua_callFancy(lua_State* _passedString, int nargs, int nresults){
+	if (lua_pcall(_passedString,nargs,nresults,0)!=LUA_OK){
+		popupMessage("lua error.",1,0);
+		popupMessage(lua_tostring(L,-1),1,0);
+		exit(1);
+	}
+}
 int calculateListOffset(int _selection, int _optionsPerScreen, int _listSize){
 	int _result=0;
 	if (_selection>=_optionsPerScreen/2){
@@ -117,7 +124,7 @@ void callListMoreInfo(lua_State* passedState, char _listNumber, int _listEntry){
 	}
 	lua_pushnumber(passedState,_listNumber);
 	lua_pushnumber(passedState,_listEntry);
-	lua_call(passedState, 2, 0);
+	lua_callFancy(passedState, 2, 0);
 	return;
 }
 // Returns -1 if user cancels
@@ -470,7 +477,7 @@ char callListInit(lua_State* passedState, char _listNumber, char _firstTime){
 		return 0;
 	}
 	lua_pushnumber(passedState,_firstTime);
-	lua_call(passedState, 1, 1);
+	lua_callFancy(passedState, 1, 1);
 	return 1;
 }
 // _listNumber should be 1 based
@@ -478,7 +485,7 @@ char callListFinish(lua_State* passedState, char _listNumber){
 	char _listFunctionName[11];
 	sprintf(_listFunctionName,"EndList%02d",_listNumber);
 	if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
-		lua_call(passedState, 0, 0);
+		lua_callFancy(passedState, 0, 0);
 	}else{
 		lua_pop(passedState,1);
 	}
@@ -490,7 +497,7 @@ char callInputFinish(lua_State* passedState, char _listNumber){
 	char _listFunctionName[12]; // Extra byte is to make the compiler not complain about possible buffer overflow
 	sprintf(_listFunctionName,"EndInput%02d",_listNumber);
 	if (lua_getglobal(passedState,_listFunctionName)==LUA_TFUNCTION){
-		lua_call(passedState, 0, 0);
+		lua_callFancy(passedState, 0, 0);
 	}else{
 		lua_pop(passedState,1);
 		callListFinish(passedState,_listNumber);
@@ -538,7 +545,7 @@ void* startDownload(void* _mandatoryArg){
 		lua_pop(L,1);
 		return NULL;
 	}else{
-		lua_call(L,0,0);
+		lua_callFancy(L,0,0);
 	}
 	return NULL;
 }
@@ -567,7 +574,7 @@ void doScript(char* luaFileToUse, char _asIgo){
 		lua_pop(L,1);
 		return;
 	}else{
-		lua_call(L,0,1); // 1 result
+		lua_callFancy(L,0,1); // 1 result
 	}
 	// If returned false, exit.
 	if (lua_isboolean(L,-1)==1){
@@ -591,7 +598,7 @@ void doScript(char* luaFileToUse, char _asIgo){
 		pthread_t _myThreadThing;
 		pthread_create(&(_myThreadThing), NULL, &startDownload, NULL);
 		
-		popupMessage("Waiting for first page...The only acceptable way to wait is coldly.",0,0);
+		popupMessage("Waiting for first page...",0,0);
 		while (needUpdateFileListing==-1){
 			sceKernelDelayThread(500000);
 		}
@@ -812,7 +819,7 @@ int L_waitForUserInputs(lua_State* passedState){
 	if (lua_getglobal(passedState,"MyLegGuy_InputInit")!=LUA_TFUNCTION){
 		lua_pop(passedState,1);
 	}else{
-		lua_call(passedState, 0, 0);
+		lua_callFancy(passedState, 0, 0);
 	}
 	// Allow user to input stuff
 	while (1){
@@ -927,7 +934,7 @@ int L_waitForUserInputs(lua_State* passedState){
 						lua_setglobal(passedState,"numberOfPrompts");
 						// Adds function to stack
 						if (lua_getglobal(passedState,"onOptionsLoad")!=0){
-							lua_call(passedState, 0, 0);
+							lua_callFancy(passedState, 0, 0);
 						}else{
 							lua_pop(passedState,1);
 						}
@@ -1180,6 +1187,25 @@ int L_parseString(lua_State* passedState){
 	lua_pushstring(passedState,_tempBuffer);
 	return 1;
 }
+// str char
+int L_findCharReverse(lua_State* passedState){
+	const char* _passedString = lua_tostring(passedState,1);
+	char _searchTarget = lua_tostring(passedState,2)[0];
+	signed int i;
+	if (lua_gettop(passedState)==3){
+		i = lua_tonumber(passedState,3)-1;
+	}else{
+		i=strlen(_passedString)-1;
+	}
+	for (;i>=0;--i){
+		if (_passedString[i]==_searchTarget){
+			lua_pushnumber(passedState,i+1);
+			return 1;
+		}
+	}
+	lua_pushnil(passedState);
+	return 1;
+}
 void MakeLuaUseful(){
 	LUAREGISTER(L_downloadString,"downloadString");
 	LUAREGISTER(L_downloadFile,"downloadFile");
@@ -1209,6 +1235,7 @@ void MakeLuaUseful(){
 	LUAREGISTER(L_setRedirects,"setRedirects");
 	LUAREGISTER(L_getLastRedirect,"getLastRedirect");
 	LUAREGISTER(L_parseString,"parseEscapable");
+	LUAREGISTER(L_findCharReverse,"findCharReverse");
 	//
 	LUAREGISTER(L_requireNewDirectorySearch,"requireNewDirectorySearch");
 	LUAREGISTER(L_incrementTotalDownloadedFiles,"incrementTotalDownloadedFiles");

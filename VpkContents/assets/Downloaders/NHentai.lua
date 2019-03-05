@@ -2,15 +2,16 @@
 -- Very basic gallery downloading by ID made by 8:50 PM 10/19/17
 -- Searching made on 10/20/17 by 11:59 PM
 -- Fixed no search result bug on 8/18/18 1:29 AM
+-- RIP API. Redone 3/4/19
 
--- TODO - Make it so user can tell what's in English
-
-SCRIPTVERSION=1;
+SCRIPTVERSION=2;
 SAVEVARIABLE=0;
 
 nhentaiMangaRootWithEndSlash = getMangaFolder(true) .. "nhentai/"
 -- MODE_SEARCH variables
 currentParsedSearchResults = {};
+numResultPages=1;
+cachedFromAsIGo=nil;
 
 MODE_SEARCH = 1;
 MODE_ID = 2;
@@ -18,178 +19,122 @@ userChosenMode=0;
 
 NORESULTSTRING = "No results!";
 
+
+function getDelimThing(_passedHtml, _passedMarker, _startPos, _deliminator)
+	local _quotationStart = string.find(_passedHtml,_passedMarker,_startPos,true);
+	if (_quotationStart==nil) then
+		return nil, _deliminator;
+	end
+	_quotationStart = _quotationStart + string.len(_passedMarker);
+	return string.sub(_passedHtml,_quotationStart,string.find(_passedHtml,_deliminator,_quotationStart,true)-1), _quotationStart;
+end
+-- for example,
+-- bla="stuff you want"
+-- you'd pass bla=\"
+-- and get
+-- stuff you want
+function getQuotationMarkThing(_passedHtml, _passedMarker, _startPos)
+	return getDelimThing(_passedHtml,_passedMarker,_startPos,"\"")
+end
+function getFileExtension(_passedPath)
+	return string.sub(_passedPath,findCharReverse(_passedPath,".")+1);
+end
+
+
+--[[
+i: https://t.nhentai.net/galleries/xxxxxxx/1t.jpg
+o: https://i.nhentai.net/galleries/xxxxxxx/1.jpg
+]]
+function thumbToRealUrl(_passedUrl)
+	local _dotStination = findCharReverse(_passedUrl,".");
+	return "https://i" .. string.sub(_passedUrl,10,_dotStination-2) .. string.sub(_passedUrl,_dotStination);
+end
+function getGalleryInfo(_passedFullUrl)
+	local _parsedUrls = {};
+	local _galleryName;
+
+	goodShowStatus("Getting HTML...");
+	local _pagehtml = downloadString(_passedFullUrl);
+	goodShowStatus("Parsing...");
+	local _lastThumbLoc = -1;
+	while(true) do
+		_lastThumbLoc = string.find(_pagehtml,"thumb-container",_lastThumbLoc+1,true);
+		if (_lastThumbLoc==nil) then
+			break;
+		end
+		table.insert(_parsedUrls,thumbToRealUrl(getQuotationMarkThing(_pagehtml,"img src=\"",_lastThumbLoc)));
+	end
+
+	local _nameStart = string.find(_pagehtml,"itemprop=\"name\"",0,true);
+	local _name, _nameStart = getQuotationMarkThing(_pagehtml,"content=\"",_nameStart);
+	local _coverUrl = getQuotationMarkThing(_pagehtml,"content=\"",_nameStart);
+	return _parsedUrls, _coverUrl, _name
+end
+
 function storage_onListMoreInfo(_passedListId, _passedListEntry)
 	if ((_passedListId)==3) then
 		_parsedGallery = currentParsedSearchResults[_passedListEntry];
-		goodShowStatus("Getting cover...");
-		--downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),_fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
-		
-		if (convertFileExtention(_parsedGallery.coverFormat)=="jpg") then
-			_tempLoadedCover = loadImageFromUrl("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),FILETYPE_JPG)
-		elseif (convertFileExtention(_parsedGallery.coverFormat)=="png") then
-			_tempLoadedCover = loadImageFromUrl("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),FILETYPE_PNG)
-		else
-			popupMessage("Invalid format. " .. _parsedGallery.coverFormat);
-			return;
+		if (_parsedGallery~=nil) then
+			goodShowStatus("Getting cover...");
+			--downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),_fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
+			
+			local _gottenExtension = getFileExtension(currentParsedSearchResults[_passedListEntry].coverUrl)
+			if (_gottenExtension=="jpg") then
+				_tempLoadedCover = loadImageFromUrl(_parsedGallery.coverUrl,FILETYPE_JPG)
+			elseif (_gottenExtension=="png") then
+				_tempLoadedCover = loadImageFromUrl(_parsedGallery.coverUrl,FILETYPE_PNG)
+			else
+				popupMessage("Invalid format. " .. _gottenExtension);
+				return;
+			end
+			photoViewer(_tempLoadedCover)
+			-- Alredy freed by photo viewer
+			--freeTexture(_tempLoadedCover)
 		end
-		photoViewer(_tempLoadedCover)
-		-- Alredy freed by photo viewer
-		--freeTexture(_tempLoadedCover)
 	end
 end
 
-function convertFileExtention(_abreviation)
-	if (_abreviation=="j") then
-		return "jpg";
-	elseif (_abreviation=="p") then
-		return "png";
-	else
-		print("Unknown file extention!");
-		print(_abreviation)
-		print("Just printed.")
-		return "jpg";
-	end
-end
-
-function getGalleryById(_passedFriendlyId)
-	print("https://nhentai.net/api/gallery/" .. _passedFriendlyId)
-	showStatus("Getting gallery...")
-	local _downloadedGalleryJSON = downloadString("https://nhentai.net/api/gallery/" .. _passedFriendlyId);
-	showStatus("Checking for connection timeout...")
-	if (string.find(_downloadedGalleryJSON,"Connection timed out",0,true)~=nil) then
-		popupMessage("Connection timed out.");
-		return false;
-	end
-	return _downloadedGalleryJSON;
-end
--- Parses gallery nearest to supplied index
--- Returns table
-function parseGalleryString(_downloadedGalleryJSON, _startIndex)
-	local _parsedGallery = {};
-	_parsedGallery.pagesFormat = {};
-	_parsedGallery.coverFormat="";
-	_parsedGallery.num_pages=0;
-	_parsedGallery.media_id="0";
-	_parsedGallery.langPrefix="";
-
-	local _firstFind=0;
-	local _secondFind=0;
-
-	-- First, look for the gallery media id
-	_firstFind = string.find(_downloadedGalleryJSON,"media_id",_startIndex,true);
-	-- 11 chars after the start of media_id is the start of the number
-	_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
-	-- Found media_id
-	_parsedGallery.media_id = string.sub(_downloadedGalleryJSON,_firstFind+11,_secondFind-1);
-
-	-- Find the pretty name
-	-- "pretty":"Festa, Festa, Festa!!! DereMas Soushuuhen"
-	--_firstFind = string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true);
-	--_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind+11,true);
-	--_parsedGallery.prettyName = fixUtf8InString(string.sub(_downloadedGalleryJSON,_firstFind+10,_secondFind-1));
-
-	_parsedGallery.prettyName = fixHtmlStupidity(fixUtf8InString(parseEscapable(_downloadedGalleryJSON,string.find(_downloadedGalleryJSON,"\"pretty\":",_secondFind,true)+10)));
-
-	-- Find number of pages
-	_firstFind = string.find(_downloadedGalleryJSON,"num_pages",_secondFind+10,true);
-
-	local _numPageEnd = string.find(_downloadedGalleryJSON,",",_firstFind+11,true);
-	local _possibleAltEnd = string.find(_downloadedGalleryJSON,"}",_firstFind+11,true);
-	-- Whichever ends the array first
-	if (_possibleAltEnd~=nil) then
-		if (_numPageEnd==nil or _possibleAltEnd<_numPageEnd) then
-			_numPageEnd=_possibleAltEnd;
-		end
-	else
-		if (_numPageEnd==nil) then
-			popupMessage("Error parse with _numPageEnd, will now crash.");
-		end
-	end
-	_parsedGallery.num_pages = tonumber(string.sub(_downloadedGalleryJSON,_firstFind+11,_numPageEnd-1));
-
-	-- This is the start of the image table. After we find this index, we'll start searching for pages starting from here
-	_firstFind = string.find(_downloadedGalleryJSON,"\"images\"",_secondFind,true);
-	
-	-- Find the file format of the cover
-	_firstFind = string.find(_downloadedGalleryJSON,"\"t\"",_firstFind,true);
-	_parsedGallery.coverFormat = string.sub(_downloadedGalleryJSON,_firstFind+5,_firstFind+5);
-
-	-- Find all file extentions
-	for i=1,_parsedGallery.num_pages do
-		_firstFind = string.find(_downloadedGalleryJSON,"\"t\"",_firstFind+1,true);
-		_parsedGallery.pagesFormat[i] = string.sub(_downloadedGalleryJSON,_firstFind+5,_firstFind+5);
-	end
-
-	local _foundLanguage = nil;
-	repeat
-		-- Find the first language, hope it's the important one
-		_firstFind = string.find(_downloadedGalleryJSON,"\"type\":\"language\"",_firstFind,true)+16;
-		_firstFind = string.find(_downloadedGalleryJSON,"\"name\"",_firstFind,true)+8; -- "name":"
-		_secondFind = string.find(_downloadedGalleryJSON,"\"",_firstFind,true);
-		_foundLanguage = string.sub(_downloadedGalleryJSON,_firstFind,_secondFind-1);
-
-		if (_foundLanguage=="japanese") then
-			_parsedGallery.langPrefix = "jp";
-		elseif (_foundLanguage=="english") then
-			_parsedGallery.langPrefix = "eng";
-		elseif (_foundLanguage=="chinese") then
-			_parsedGallery.langPrefix = "chi";
-		else
-			_parsedGallery.langPrefix = _foundLanguage;
-		end
-	until _foundLanguage~="translated";
-	return _parsedGallery;
-end
 
 function parseSearchResults(_searchResultJSON)
-	--local _searchResultJSON = downloadString("https://nhentai.net/api/galleries/search?query=naruto&page=1");
-	local _lastFoundUploadDateIndex=0;
+	showStatus("Parsing results...");
 
-	local _totalParsedResults = {};
-	local i=1;
-	showStatus("Parsing results ");
-	while true do
-		local _tempFound = string.find(_searchResultJSON,"upload_date",_lastFoundUploadDateIndex+1,true);
-		if (_tempFound==nil) then
-			break;
+	local _retTable = {}
+	local _resultLoc = string.find(_searchResultJSON,"index-container",0,true);
+	if (_resultLoc~=nil) then
+		while(true) do
+			_resultLoc = string.find(_searchResultJSON,"div class=\"gallery\"",_resultLoc+1,true);
+			if (_resultLoc==nil) then
+				break;
+			end
+			local _currentEntry = {};
+			_currentEntry.url, _resultLoc = getQuotationMarkThing(_searchResultJSON,"a href=\"",_resultLoc)
+			_currentEntry.coverUrl, _resultLoc = getQuotationMarkThing(_searchResultJSON,"data-src=\"",_resultLoc);
+			_currentEntry.name, _resultLoc = getDelimThing(_searchResultJSON,"div class=\"caption\">",_resultLoc,"</div>");
+			table.insert(_retTable,_currentEntry);
 		end
-		table.insert(_totalParsedResults,parseGalleryString(_searchResultJSON,_lastFoundUploadDateIndex));
-		i=i+1;
-		_lastFoundUploadDateIndex = _tempFound;
+	
+	
+		local _afterButtonPosition = string.find(_searchResultJSON,"class=\"last\"",0,true);
+		local _beforePageButton = findCharReverse(_searchResultJSON,"?",_afterButtonPosition);
+		local _maxPageString = getQuotationMarkThing(_searchResultJSON,"page=",_beforePageButton)
+		return _retTable, tonumber(_maxPageString);
+	else
+		return {},0
 	end
-	if (i==1) then
-		_totalParsedResults.num_pages = 0;
-		return _totalParsedResults;
-	end
-
-	-- If we're here, that means that no more mangas were found.
-	-- _lastFoundUploadDateIndex contains the start of the last found manga.
-	-- This will find the number of pages in the last manga
-	_lastFoundUploadDateIndex = string.find(_searchResultJSON,"num_pages",_lastFoundUploadDateIndex,true);
-	-- Because we're sure the last result was the last manga, we can be sure that the next num_pages is the number of pages in the search.
-	_lastFoundUploadDateIndex = string.find(_searchResultJSON,"num_pages",_lastFoundUploadDateIndex+1,true);
-	-- If this is null, then there were no search results. The num_pages that was found before this one was the one reporting that there are 0 search results.
-	if (_lastFoundUploadDateIndex==nil) then
-		_totalParsedResults.num_pages = 0;
-		return _totalParsedResults;
-	end
-	--],"num_pages":1,"per_page":25}
-	_totalParsedResults.num_pages = tonumber(string.sub(_searchResultJSON,_lastFoundUploadDateIndex+11,string.find(_searchResultJSON,",",_lastFoundUploadDateIndex+11,true)-1));
-	return _totalParsedResults;
 end
 
 -- Converts all \uxxxx stuff it finds
-function fixUtf8InString(str)
-	local _lastFoundUtf8Offset = 0;
-	while (true) do
-		_lastFoundUtf8Offset = string.find(str,"\\u",0,true);
-		if (_lastFoundUtf8Offset==nil) then
-			break;
-		end
-		str = string.sub(str,1,_lastFoundUtf8Offset-1) .. utf8.char(tonumber(string.sub(str,_lastFoundUtf8Offset+2,_lastFoundUtf8Offset+5),16)) .. string.sub(str,_lastFoundUtf8Offset+6);
-	end
-	return str;
-end
+--function fixUtf8InString(str)
+--	local _lastFoundUtf8Offset = 0;
+--	while (true) do
+--		_lastFoundUtf8Offset = string.find(str,"\\u",0,true);
+--		if (_lastFoundUtf8Offset==nil) then
+--			break;
+--		end
+--		str = string.sub(str,1,_lastFoundUtf8Offset-1) .. utf8.char(tonumber(string.sub(str,_lastFoundUtf8Offset+2,_lastFoundUtf8Offset+5),16)) .. string.sub(str,_lastFoundUtf8Offset+6);
+--	end
+--	return str;
+--end
 
 _currentSearchParsedPage=-1;
 _list02UserInput01Cache = "";
@@ -199,10 +144,10 @@ function InitList02(isFirstTime)
 		setUserInput(2,1);
 		_list02UserInput01Cache = userInput01;
 		local _returnTable = {};
-		if (currentParsedSearchResults.num_pages==0) then
+		if (#currentParsedSearchResults==0) then
 			table.insert(_returnTable,NORESULTSTRING);
 		else
-			for i=1,currentParsedSearchResults.num_pages do
+			for i=1,numResultPages do
 				table.insert(_returnTable,tostring(i));
 			end
 		end
@@ -234,7 +179,7 @@ function updateSearchWithUserInputs()
 	currentParsedSearchResults={};
 	_currentSearchParsedPage = userInput02;
 	local _searchResultJSON = getSearch(userInput01,math.floor(userInput02));
-	currentParsedSearchResults = parseSearchResults(_searchResultJSON);
+	currentParsedSearchResults, numResultPages = parseSearchResults(_searchResultJSON);
 end
 
 
@@ -252,7 +197,8 @@ function InitList03(isFirstTime)
 			table.insert(_returnTable,NORESULTSTRING);
 		else
 			for i=1,_cachedNumber do
-				table.insert(_returnTable,"[" .. currentParsedSearchResults[i].langPrefix .. "]" ..(currentParsedSearchResults[i].prettyName));
+				table.insert(_returnTable,(currentParsedSearchResults[i].name));
+				--table.insert(_returnTable,"[" .. currentParsedSearchResults[i].langPrefix .. "]" ..(currentParsedSearchResults[i].prettyName));
 			end
 		end
 		return _returnTable;
@@ -263,27 +209,43 @@ end
 function getSearch(_passedSearchTerms, _passedPageNumber)
 	showStatus("Getting search JSON...")
 	_passedSearchTerms = string.gsub(_passedSearchTerms," ","+");
-	return downloadString("https://nhentai.net/api/galleries/search?query=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
+	return downloadString("https://nhentai.net/search/?q=" .. _passedSearchTerms .. "&page=" .. _passedPageNumber)
 end
 
-function getGalleryFullFolder(_parsedGallery)
-	return nhentaiMangaRootWithEndSlash .. makeFolderFriendly(_parsedGallery.prettyName);
+function getGalleryFullFolder(_passedName)
+	return nhentaiMangaRootWithEndSlash .. makeFolderFriendly(_passedName);
 end
 
-function doGallery(_parsedGallery)
+function doGallery(_passedUrl)
+	local _gottenPageUrls;
+	local _gottenName;
+	local _gottenCover;
+	
+	--[[
+	cachedFromAsIGo.urlTable = _gottenUrlTable;
+		cachedFromAsIGo.name = _gottenName;
+		cachedFromAsIGo.urlTable,cachedFromAsIGo.coverUrl,cachedFromAsIGo.name
+		]]
+	if (cachedFromAsIGo~=nil) then
+		_gottenPageUrls = cachedFromAsIGo.urlTable;
+		_gottenName = cachedFromAsIGo.name;
+		_gottenCover = cachedFromAsIGo.coverUrl;
+	else
+		_gottenPageUrls,_gottenCover,_gottenName = getGalleryInfo(_passedUrl);
+	end
+
 	-- Manga specific directory
-	local _fixedFolderName = getGalleryFullFolder(_parsedGallery);
+	local _fixedFolderName = getGalleryFullFolder(_gottenName);
 	createDirectory(_fixedFolderName);
 
-	-- Download the cover beforehand
+	--
 	goodShowStatus("Downloading cover...");
-	downloadFile("https://t.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/cover" .. "." .. convertFileExtention(_parsedGallery.coverFormat),_fixedFolderName .. "/cover." .. convertFileExtention(_parsedGallery.coverFormat))
-	
+	downloadFile(_gottenCover,_fixedFolderName .. "/cover." .. getFileExtension(_gottenCover));
+
 	-- Download the pages
-	for i=1,_parsedGallery.num_pages do
-		local _fileExtention = convertFileExtention(_parsedGallery.pagesFormat[i]);
-		goodShowStatus(_parsedGallery.prettyName .. "\n" .. i .. "/" .. _parsedGallery.num_pages);
-		downloadFile("https://i.nhentai.net/galleries/" .. _parsedGallery.media_id .. "/" .. i .. "." .. _fileExtention,_fixedFolderName .. "/" .. string.format("%03d",i) .. "." .. _fileExtention);
+	for i=1,#_gottenPageUrls do
+		goodShowStatus(_gottenName .. "\n" .. i .. "/" .. #_gottenPageUrls);
+		downloadFile(_gottenPageUrls[i],_fixedFolderName .. "/" .. string.format("%03d",i) .. "." .. getFileExtension(_gottenPageUrls[i]));
 		sendJustDownloadedNew();
 	end
 	setDoneDownloading();
@@ -294,7 +256,7 @@ function MyLegGuy_Download()
 	createDirectory(nhentaiMangaRootWithEndSlash);
 
 	setUserAgent("Vita-Nathan-Lua-Manga-Downloader/" .. string.format("%02d",getDownloaderVersion()));
-	doGallery(currentParsedSearchResults[userInput03])
+	doGallery("https://nhentai.net" .. currentParsedSearchResults[userInput03].url)
 end
 
 -- Only called for the first prompt because the second prompt has a string for the first input.
@@ -306,11 +268,11 @@ function InitList01()
 end
 
 function MyLegGuy_Prompt()
-	__tempHoldEndInput1 = EndInput01;
+	local __tempHoldEndInput1 = EndInput01;
 	EndInput01=nil;
 
 	ResetUserChoices();
-	userInputQueue("Mode","Will you use an ID, or search?",INPUTTYPELIST);
+	userInputQueue("Mode","Will you use an ID from a URL, or search?",INPUTTYPELIST);
 	if (waitForUserInputs(false)==false) then
 		return false;
 	end
@@ -335,17 +297,28 @@ function MyLegGuy_Prompt()
 		end
 	elseif (userChosenMode == MODE_ID) then
 		ResetUserChoices();
-		userInputQueue("ID","The ID. For example, 212113 from https://nhentai.net/g/212113/",INPUTTYPESTRING)
+		userInputQueue("ID","The ID. For example, 999999 from https://nhentai.net/g/999999/",INPUTTYPESTRING)
 		if (waitForUserInputs(false)==false) then
 			return false;
 		end
+		if (tonumber(userInput01)==nil) then
+			popupMessage("Invalid input. Should be a number.");
+			return false;
+		end
+		local _fakeResultEntry = {};
+		_fakeResultEntry.url = "/g/" .. userInput01 .. "/";
 		currentParsedSearchResults = {};
-		table.insert(currentParsedSearchResults,parseGalleryString(getGalleryById(userInput01),0));
+		table.insert(currentParsedSearchResults,_fakeResultEntry);
 		userInput03=1;
 	end
 	if (isAsIGo==true) then
+		showStatus("Getting folder...");
+
+		cachedFromAsIGo = {};
+		cachedFromAsIGo.urlTable,cachedFromAsIGo.coverUrl,cachedFromAsIGo.name = getGalleryInfo("https://nhentai.net" .. currentParsedSearchResults[userInput03].url);
+
 		_asIgoFolder="";
-		_asIgoFolder = getGalleryFullFolder(currentParsedSearchResults[userInput03]);
+		_asIgoFolder = getGalleryFullFolder(cachedFromAsIGo.name);
 		_asIgoFolder = _asIgoFolder .. "/"
 	end
 	return true;
