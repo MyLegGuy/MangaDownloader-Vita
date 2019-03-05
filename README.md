@@ -16,6 +16,10 @@ Refer to the digital manual for more information. It can be accessed from the Li
 
 **Downloads are saved to ux0:data/LUAMANGAS/Manga/.**
 
+### How to compile
+`make` - Compiles vpk.
+`make stuffvpk` - Puts assets in vpk. Requires 7z.
+
 #### Support
 
 You may ask questions in the [**issues**](https://github.com/MyLegGuy/MangaDownloader-Vita/issues) section.
