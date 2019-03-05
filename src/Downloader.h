@@ -168,7 +168,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 	while (1){
 		FpsCapStart();
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_DOWN) || dasTime==0){
+		if (wasJustPressed(SCE_CTRL_DOWN) || (dasTime==0 && isDown(SCE_CTRL_DOWN))){
 			if (dasTime!=0){
 				dasTime=DASWAITINITIAL;
 			}else{
@@ -177,7 +177,12 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 			_selection = moveCursor(_selection,_listSize,1,1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-		}else if (wasJustPressed(SCE_CTRL_UP)){
+		}else if (wasJustPressed(SCE_CTRL_UP) || (dasTime==0 && isDown(SCE_CTRL_UP))){
+			if (dasTime!=0){
+				dasTime=DASWAITINITIAL;
+			}else{
+				dasTime=DASWAITSINGLE;
+			}
 			_selection = moveCursor(_selection,_listSize,1,-1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
@@ -267,7 +272,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				callListMoreInfo(passedState,_luaListId,_selection+1);
 			}
 		}
-		if (isDown(SCE_CTRL_DOWN)){
+		if (isDown(SCE_CTRL_DOWN) || isDown(SCE_CTRL_UP)){
 			if (dasTime>0){
 				--dasTime;
 			}
