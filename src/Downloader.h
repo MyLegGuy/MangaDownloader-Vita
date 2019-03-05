@@ -16,6 +16,8 @@ lua_setglobal(L,y);
 #define INPUTTYPELISTMULTI 4
 #define MAXQUEUE 5
 #define SCROLLCHARSPEED 5
+#define DASWAITINITIAL 30
+#define DASWAITSINGLE 2
 // Customizable colors confirmed?!
 #define COLOROPTION 255,255,255
 #define COLORMARKED 255,100,0
@@ -26,7 +28,7 @@ lua_setglobal(L,y);
 #define COLORVALID 0,255,0
 #define COLORMAYBE 255,255,0
 // For lists and number input, how much you move when pressing left or right
-#define LISTLEFTRIGHTJUMPOFFSET 10
+#define LISTLEFTRIGHTJUMPOFFSET (screenHeight/currentTextHeight)
 
 #define DOWNLOAD_NONE 0
 #define DOWNLOAD_CURL 1
@@ -158,6 +160,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 			}
 		}
 	}
+	signed char dasTime=-1;
 	intptr_t _valueToReturn=-1;
 	int _framesUntilScroll=30;
 	int _scrollCharOffset=0;
@@ -165,7 +168,12 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 	while (1){
 		FpsCapStart();
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_DOWN)){
+		if (wasJustPressed(SCE_CTRL_DOWN) || dasTime==0){
+			if (dasTime!=0){
+				dasTime=DASWAITINITIAL;
+			}else{
+				dasTime=DASWAITSINGLE;
+			}
 			_selection = moveCursor(_selection,_listSize,1,1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
@@ -258,6 +266,13 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 			if (passedState!=NULL){
 				callListMoreInfo(passedState,_luaListId,_selection+1);
 			}
+		}
+		if (isDown(SCE_CTRL_DOWN)){
+			if (dasTime>0){
+				--dasTime;
+			}
+		}else{
+			dasTime=-1;
 		}
 		controlsEnd();
 
