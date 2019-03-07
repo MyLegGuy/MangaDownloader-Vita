@@ -23,7 +23,7 @@ NORESULTSTRING = "No results!";
 function getDelimThing(_passedHtml, _passedMarker, _startPos, _deliminator)
 	local _quotationStart = string.find(_passedHtml,_passedMarker,_startPos,true);
 	if (_quotationStart==nil) then
-		return nil, _deliminator;
+		return nil, _startPos;
 	end
 	_quotationStart = _quotationStart + string.len(_passedMarker);
 	return string.sub(_passedHtml,_quotationStart,string.find(_passedHtml,_deliminator,_quotationStart,true)-1), _quotationStart;
@@ -108,8 +108,11 @@ function parseSearchResults(_searchResultJSON)
 			end
 			local _currentEntry = {};
 			_currentEntry.url, _resultLoc = getQuotationMarkThing(_searchResultJSON,"a href=\"",_resultLoc)
-			_currentEntry.coverUrl, _resultLoc = getQuotationMarkThing(_searchResultJSON,"data-src=\"",_resultLoc);
+			_currentEntry.coverUrl, _resultLoc = getQuotationMarkThing(_searchResultJSON,"img src=\"",_resultLoc);
 			_currentEntry.name, _resultLoc = getDelimThing(_searchResultJSON,"div class=\"caption\">",_resultLoc,"</div>");
+			if (string.sub(_currentEntry.coverUrl,1,2)=="//") then
+				_currentEntry.coverUrl = "https:" .. _currentEntry.coverUrl
+			end
 			table.insert(_retTable,_currentEntry);
 		end
 	
