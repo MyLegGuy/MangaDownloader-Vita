@@ -5,8 +5,8 @@ TODO - More site support. I made a list.
 TODO - To make things faster, add the option to remember asIgo selection
 TODO - Ability to delete all .lastSelection files
 */
-#define VERSION 3
-#define VERSIONSTRING "v2.4"
+#define VERSION 4
+#define VERSIONSTRING "v2.5"
 
 #include <stdio.h>
 #include <stdlib.h>
