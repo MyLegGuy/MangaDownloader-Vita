@@ -127,10 +127,8 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	char* _tempPathFixBuffer = malloc(strlen(_mangaDirectoryFilenames[_startIndex])+strlen(currentDownloadReaderDirectory)+1);
 	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
 	strcat(_tempPathFixBuffer,_mangaDirectoryFilenames[_startIndex]);
-	if (strcmp(getFileExtention(_tempPathFixBuffer,3),"jpg")==0){
-		*_toStorePage = loadJPG(_tempPathFixBuffer);
-	}else if (strcmp(getFileExtention(_tempPathFixBuffer,3),"png")==0){
-		*_toStorePage = loadPNG(_tempPathFixBuffer);
+	if (hasImageExtension(_tempPathFixBuffer)){
+		*_toStorePage = loadLoadableImage(_tempPathFixBuffer);
 	}else{
 		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset+1);
 	}

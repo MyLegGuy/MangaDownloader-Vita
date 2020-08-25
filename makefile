@@ -3,15 +3,15 @@ TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
 OBJS     = src/main.o src/fpsCapper.o src/keyboardCode.o src/linkedList.o src/netCode.o src/openBSDstrcharstr.o
 
-LIBS = -lGeneralGood -lvita2dfixed -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
+LIBS = -lGeneralGood -lvita2d -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
 	-lSceDisplay_stub -lSceGxm_stub -lSceSysmodule_stub -lSceCtrl_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -llua \
-	-lm -lcurl -lssl -lcrypto -lz -lpthread
+	-lm -lcurl -lssl -lcrypto -lz -lpthread -lSceAppMgr_stub
 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
-CFLAGS  = -Wl,-q -Wall -O3 -g -Llib/Vita -IInclude
+CFLAGS  = -Wl,-q -Wall -O3 -g -Llib/Vita -IInclude -Wno-format-overflow
 CXXFLAGS = $(CFLAGS)
 ASFLAGS = $(CFLAGS)
 

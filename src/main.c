@@ -32,7 +32,6 @@ TODO - Ability to delete all .lastSelection files
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
-#include "main.h"
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 255
 
@@ -48,6 +47,7 @@ TODO - Ability to delete all .lastSelection files
 #include "GeneralGoodGraphics.h"
 #include "GeneralGoodText.h"
 #include "GeneralGoodImages.h"
+#include "main.h"
 #include "fpsCapper.h"
 #include "keyboardCode.h"
 #include "openBSDstrcharstr.h"
@@ -196,6 +196,38 @@ char* getFileExtention(char* _filename, int _extentionLength){
 		return _filename;
 	}
 	return &(_filename[strlen(_filename)-_extentionLength]);
+}
+char hasImageExtension(char* _fullPath){
+	char* _ext = getFileExtention(_fullPath,3);
+	return (strcmp(_ext,"png")==0 || strcmp(_ext,"jpg")==0);
+}
+static char getImageType(unsigned char _magicStart){
+	if (_magicStart==0x89){
+		return 1;
+	}else if (_magicStart==0xFF){
+		return 2;
+	}/*else if (_magicStart==0x42){
+		return 3;
+		}*/else{
+		return 0;
+	}
+}
+CrossTexture* loadLoadableImage(char* path){
+	FILE* fp=fopen(path,"rb");
+	if (fp==NULL){
+		return NULL;
+	}
+	unsigned char _magicStart = fgetc(fp);
+	fclose(fp);
+	switch(getImageType(_magicStart)){
+		case 1:
+			return loadPNG(path);
+		case 2:
+			return loadJPG(path);
+			/*case 3:
+			  return loadBMP(path);*/
+	}
+	return NULL;
 }
 // Must be a malloc'd list
 void alphabetizeList(char** _passedList,int _totalFileListLength){
@@ -390,8 +422,7 @@ void mainRead(char* _startingDirectory){
 		strcat(_currentDirectoryPath,_currentDirectoryListing[_tempUserChoice]);
 		
 		// Test if single image
-		char* _newFileExtention = getFileExtention(_currentDirectoryPath,3);
-		if (strcmp(_newFileExtention,"png")==0 || strcmp(_newFileExtention,"jpg")==0){
+		if (hasImageExtension(_currentDirectoryPath)){
 			_currentDirectoryPath = backADirectory(_currentDirectoryPath);
 			currentDownloadReaderDirectory = _currentDirectoryPath;
 			isDoneDownloading=1;

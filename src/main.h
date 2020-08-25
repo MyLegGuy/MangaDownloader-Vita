@@ -5,4 +5,6 @@ char* getFileExtention(char* _filename, int _extentionLength);
 void WriteIntToDebugFile(int a);
 void WriteToDebugFile(const char* stuff);
 void alphabetizeList(char** _passedList,int _totalFileListLength);
+CrossTexture* loadLoadableImage(char* path);
+char hasImageExtension(char* _fullPath);
 #endif
