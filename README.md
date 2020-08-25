@@ -1,5 +1,8 @@
 ## MangaDownloader-Vita
-### Read manga right on your PS Vita.
+
+this application is dead. is it unusable? maybe. i'm not sure. i only use it every once in a while.
+it looks like somebody else made a similar application: https://github.com/Creckeryop/NOBORU
+i haven't tried it, but it sure visually looks nice.
 
 #### How to use
 It's moron-proof.
