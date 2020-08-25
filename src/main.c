@@ -32,6 +32,7 @@ TODO - Ability to delete all .lastSelection files
 #include <unistd.h>
 #include <string.h>
 #include <pthread.h>
+#include "main.h"
 // Max number of downloader scripts and pages in manga reader.
 #define MAXFILES 255
 
@@ -47,7 +48,7 @@ TODO - Ability to delete all .lastSelection files
 #include "GeneralGoodGraphics.h"
 #include "GeneralGoodText.h"
 #include "GeneralGoodImages.h"
-#include "main.h"
+#include "main.gfx.h"
 #include "fpsCapper.h"
 #include "keyboardCode.h"
 #include "openBSDstrcharstr.h"
