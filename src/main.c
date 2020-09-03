@@ -42,10 +42,6 @@ TODO - Ability to delete all .lastSelection files
 #define FILETYPE_JPG 1
 #define FILETYPE_PNG 2
 
-#if GBPLAT == GB_VITA
-#include <psp2/ctrl.h>
-#endif
-
 #include <goodbrew/config.h>
 #include <goodbrew/useful.h>
 #include <goodbrew/base.h>
@@ -54,6 +50,9 @@ TODO - Ability to delete all .lastSelection files
 #include <goodbrew/text.h>
 #include <goodbrew/controls.h>
 #include <goodbrew/paths.h>
+#if GBPLAT == GB_VITA
+#include <psp2/ctrl.h>
+#endif
 #include "main.gfx.h"
 #include "fpsCapper.h"
 #include "keyboardCode.h"

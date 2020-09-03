@@ -163,7 +163,7 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 	if (decryptioneof(d)){
 		return LOADNEW_FINISHEDMANGA;
 	}
-	
+
 	#if RENDERER == REND_SDL
 	unsigned char* _bytes = malloc(_len);
 	decryptmore(d,_bytes,_len);
@@ -183,11 +183,12 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 			fprintf(stderr,"bad png\n");
 		}
 		*_toStorePage=_vita2d_load_PNG_generic(d, _png_read_callback);
+		return LOADNEW_LOADEDNEW;
 	}else if (_firstByte==0xFF){
 	}else{
 		// TODO - either just fast forward through the rest of the file OR make sure only png or jpg end up in archive.
 	}
-	
+
 	#else
 	#warning no loader for this
 	#endif
@@ -204,7 +205,7 @@ int loadNewPage(crossTexture** _toStorePage, char** _currentRelativeFilename, in
 	}else{
 		return loadNewPageFile(_toStorePage,_currentRelativeFilename,_directionOffset);
 	}
-	
+
 }
 
 //////

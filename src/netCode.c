@@ -20,8 +20,9 @@ Copyright (C) 2018 MyLegGuy
 
 #include <stdlib.h>
 #include <string.h>
+#include <goodbrew/config.h>
 
-#if PLATFORM == PLAT_VITA
+#if GBPLAT == GB_VITA
 	#include <psp2/sysmodule.h>
 	#include <psp2/kernel/processmgr.h>
 	#include <psp2/display.h>
@@ -68,7 +69,7 @@ Copyright (C) 2018 MyLegGuy
 		return realsize;
 	}
 	size_t curlWriteDataFile(void *ptr, size_t size, size_t nmemb, void *stream){
-		#if PLATFORM == PLAT_VITA
+		#if GBPLAT == GB_VITA
 			sceKernelPowerTick(SCE_KERNEL_POWER_TICK_DISABLE_AUTO_SUSPEND);
 		#endif
 		size_t written = fwrite(ptr, size, nmemb, (FILE *)stream);
@@ -136,7 +137,7 @@ Copyright (C) 2018 MyLegGuy
 		}
 	}
 	void initDownload(char* _certLocation){
-		#if PLATFORM == PLAT_VITA
+		#if GBPLAT == GB_VITA
 			sceSysmoduleLoadModule(SCE_SYSMODULE_NET);
 			SceNetInitParam netInitParam;
 			int size = 4*1024*1024;

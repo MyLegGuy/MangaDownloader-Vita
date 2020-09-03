@@ -29,8 +29,17 @@ char isHArchive(const char* _filename){
 	int _len = strlen(_filename);
 	return (_len>=2 && _filename[_len-1]=='h' && _filename[_len-2]=='.');
 }
+static char _cpuOverclocked=0;
 extern char* currentDownloadReaderDirectory;
 void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFilename){
+
+	if (!_cpuOverclocked){
+		_cpuOverclocked=1;
+		#if GBPLAT == GBPLAT_VITA
+		#warning a
+		scePowerSetArmClockFrequency(444);
+		#endif
+	}
 	struct decstate* myarchive;
 	myarchive=mallocdecstate();
 	char* _tempPathFixBuffer = malloc(strlen(_currentRelativeFilename)+strlen(currentDownloadReaderDirectory)+1);
@@ -56,8 +65,8 @@ void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFi
 	*_retArc=myarchive;
 }
 
-#if RENDERER == REND_SDL
-#if PLATFORM == PLAT_COMPUTER
+#if GBREND == GBREND_SDL
+#if GBPLAT == GB_LINUX
 void sceKernelDelayThread(int _noob){
 	FpsCapStart();
 	FpsCapWait();
@@ -125,9 +134,10 @@ char* photoViewer(crossTexture* _passedTexture, char* _currentRelativeFilename){
 }
 
 
-#elif RENDERER == REND_VITA2D
+#elif GBREND == GBREND_VITA2D
 
-
+#include <math.h>
+#include <psp2/kernel/threadmgr.h>
 #define ALIGN_CENTER(a, b) (((a)-(b)) / 2)
 #define ALIGN_RIGHT(x, w) ((x)-(w))
 
@@ -191,7 +201,7 @@ static void photoMode(float *zoom, float width, float height, float rad, int mod
 	switch (mode) {
 		case MODE_CUSTOM:
 			break;
-			
+
 		case MODE_PERFECT: // this is only used for showing image the first time
 			if (h > screenHeight) { // first priority, fit height
 				*zoom = screenHeight/h;
@@ -202,15 +212,15 @@ static void photoMode(float *zoom, float width, float height, float rad, int mod
 			}
 
 			break;
-		
+
 		case MODE_ORIGINAL:
 			*zoom = 1.0f;
 			break;
-			
+
 		case MODE_FIT_HEIGHT:
 			*zoom = screenHeight/h;
 			break;
-			
+
 		case MODE_FIT_WIDTH:
 			*zoom = screenWidth/w;
 			break;
@@ -331,7 +341,7 @@ void readPad() {
 }
 // No need to free a texture afterwards if you pass one to it.
 // _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
-char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) {
+char* photoViewer(crossTexture* _singleTexture, char* _currentRelativeFilename) {
 	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
 		if (isHArchive(_currentRelativeFilename)){
