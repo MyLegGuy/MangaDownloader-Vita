@@ -8,7 +8,7 @@
 #endif
 #if RENDERER == REND_VITA2D
 	#define CrossTexture vita2d_texture
-	#include <vita2d.h>
+	#include <libvita2dplusbloat/vita2d.h>
 #endif
 #if RENDERER == REND_SF2D
 	#define CrossTexture sf2d_texture

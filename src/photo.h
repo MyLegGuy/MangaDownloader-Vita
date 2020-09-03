@@ -23,6 +23,39 @@
 #ifndef __PHOTO_H__
 #define __PHOTO_H__
 
+#include "decrypt.h"
+
+char isHArchive(const char* _filename){
+	int _len = strlen(_filename);
+	return (_len>=2 && _filename[_len-1]=='h' && _filename[_len-2]=='.');
+}
+extern char* currentDownloadReaderDirectory;
+void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFilename){
+	struct decstate* myarchive;
+	myarchive=mallocdecstate();
+	char* _tempPathFixBuffer = malloc(strlen(_currentRelativeFilename)+strlen(currentDownloadReaderDirectory)+1);
+	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
+	strcat(_tempPathFixBuffer,_currentRelativeFilename);
+	initdecstate(myarchive,_tempPathFixBuffer,(unsigned char*)"aaa",3);
+	free(_tempPathFixBuffer);
+	{ // skip header
+		unsigned char c;
+		for (int i=0;i<7;++i){
+			decryptmore(myarchive, &c, 1);
+		}
+		while(1){
+			decryptmore(myarchive, &c, 1);
+			if (c==00){
+				break;
+			}
+		}
+		for (int i=0;i<4;++i){
+			decryptmore(myarchive, &c, 1);
+		}
+	}
+	*_retArc=myarchive;
+}
+
 #if RENDERER == REND_SDL
 #if PLATFORM == PLAT_COMPUTER
 void sceKernelDelayThread(int _noob){
@@ -39,10 +72,14 @@ void readPad(){
 // My code
 #include "photoExtended.h"
 char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
+	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
-		char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
-		strcpy(_tempSafeSpace,_currentRelativeFilename);
-		_currentRelativeFilename = _tempSafeSpace;
+		if (isHArchive(_currentRelativeFilename)){
+			setupArchiveStuff(&myarchive,_currentRelativeFilename);
+			_currentRelativeFilename=NULL;
+		}else{
+			_currentRelativeFilename=strdup(_currentRelativeFilename);
+		}
 	}
 	char _isSingleImageMode = _passedTexture!=NULL;
 	CrossTexture* tex=NULL;
@@ -50,7 +87,7 @@ char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 	if (_isSingleImageMode==1){
 		tex=_passedTexture;
 	}else{
-		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0,myarchive);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			printf("failed to load.\n");
 			return NULL;
@@ -67,7 +104,7 @@ char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 				freeTexture(tex);
 				break;
 			}
-			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1);
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1,myarchive);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
 				break;
@@ -80,6 +117,10 @@ char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 		FpsCapWait();
 	}
 	freeTexture(tex);
+	if (myarchive){
+		freedecryptstate(myarchive);
+		free(myarchive);
+	}
 	return (_currentRelativeFilename);
 }
 
@@ -291,11 +332,14 @@ void readPad() {
 // No need to free a texture afterwards if you pass one to it.
 // _currentRelativeFilename isn't touched by this function, so you need to free it yourself if you malloc'd it.
 char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) {
+	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
-		// Don't want to touch a buffer I don't know about.
-		char* _tempSafeSpace = malloc(strlen(_currentRelativeFilename)+1);
-		strcpy(_tempSafeSpace,_currentRelativeFilename);
-		_currentRelativeFilename = _tempSafeSpace;
+		if (isHArchive(_currentRelativeFilename)){
+			setupArchiveStuff(&myarchive,_currentRelativeFilename);
+			_currentRelativeFilename=NULL;
+		}else{
+			_currentRelativeFilename=strdup(_currentRelativeFilename);
+		}
 	}
 	int _halfScreenWidth = screenWidth/2;
 	int _halfScreenHeight = screenHeight/2;
@@ -304,7 +348,7 @@ char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) 
 	if (_isSingleImageMode==1){
 		tex=_singleTexture;
 	}else{
-		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0);
+		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0,myarchive);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			return NULL;
 		}
@@ -347,7 +391,7 @@ char* photoViewer(CrossTexture* _singleTexture, char* _currentRelativeFilename) 
 			if (_isNextPage==0){
 				_isNextPage=-1;
 			}
-			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,_isNextPage);
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,_isNextPage,myarchive);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 				resetImageInfo(tex, &width, &height, &x, &y, &rad, &zoom, &mode, &time);
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){

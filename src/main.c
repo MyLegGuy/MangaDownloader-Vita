@@ -25,7 +25,7 @@ TODO - To make things faster, add the option to remember asIgo selection
 TODO - Ability to delete all .lastSelection files
 */
 #define VERSION 4
-#define VERSIONSTRING "v2.5"
+#define VERSIONSTRING "v2.6"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -200,7 +200,7 @@ char* getFileExtention(char* _filename, int _extentionLength){
 }
 char hasImageExtension(char* _fullPath){
 	char* _ext = getFileExtention(_fullPath,3);
-	return (strcmp(_ext,"png")==0 || strcmp(_ext,"jpg")==0);
+	return (strcmp(_ext,"png")==0 || strcmp(_ext,"jpg")==0 || (_ext[1]=='.' && _ext[2]=='h'));
 }
 static char getImageType(unsigned char _magicStart){
 	if (_magicStart==0x89){
@@ -209,7 +209,10 @@ static char getImageType(unsigned char _magicStart){
 		return 2;
 	}/*else if (_magicStart==0x42){
 		return 3;
-		}*/else{
+		}*/
+	else if (_magicStart==0x01){
+		return 4;
+	}else{
 		return 0;
 	}
 }
@@ -227,6 +230,9 @@ CrossTexture* loadLoadableImage(char* path){
 			return loadJPG(path);
 			/*case 3:
 			  return loadBMP(path);*/
+		case 4:
+			printf("todo - load it\n");
+			break;
 	}
 	return NULL;
 }

@@ -1,17 +1,17 @@
 TITLE_ID = VSDK00001
 TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
-OBJS     = src/main.o src/fpsCapper.o src/keyboardCode.o src/linkedList.o src/netCode.o src/openBSDstrcharstr.o
+OBJS     = src/main.o src/fpsCapper.o src/keyboardCode.o src/linkedList.o src/netCode.o src/openBSDstrcharstr.o src/decrypt.o
 
-LIBS = -lGeneralGood -lvita2d -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
+LIBS = -lGeneralGood -lvita2dplusbloat -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
 	-lSceDisplay_stub -lSceGxm_stub -lSceSysmodule_stub -lSceCtrl_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -llua \
-	-lm -lcurl -lssl -lcrypto -lz -lpthread -lSceAppMgr_stub
+	-lm -lcurl -lssl -lcrypto -lz -lpthread -lSceAppMgr_stub -lcrypto
 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc
 CXX = $(PREFIX)-g++
-CFLAGS  = -Wl,-q -Wall -O3 -g -Llib/Vita -IInclude -Wno-format-overflow
+CFLAGS  = -Wl,-q -Wall -O3 -g -Llib/Vita -IInclude -Wno-format-overflow -Wno-pointer-sign
 CXXFLAGS = $(CFLAGS)
 ASFLAGS = $(CFLAGS)
 
@@ -52,3 +52,12 @@ send: eboot.bin
 
 stuffvpk:
 	@7z a MangaDownloader.vpk ./VpkContents/*
+# DO NOT DELETE
+
+./src/decrypt.o: ./src/cryptshared.h
+./src/linkedList.o: ./src/linkedList.h
+./src/main.o: ./src/main.h ./src/main.gfx.h ./src/fpsCapper.h
+./src/main.o: ./src/keyboardCode.h ./src/openBSDstrcharstr.h
+./src/main.o: ./src/linkedList.h ./src/photo.h ./src/decrypt.h
+./src/main.o: ./src/photoExtended.h ./src/Downloader.h ./src/netCode.h
+./src/netCode.o: ./src/main.h

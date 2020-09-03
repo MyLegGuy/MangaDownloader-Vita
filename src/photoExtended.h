@@ -50,8 +50,7 @@ int L_setMangaDoneDownloading(lua_State* passedState){
 #define LOADNEW_LOADEDNEW 1
 #define LOADNEW_DIDNTLOAD 2
 #define LOADNEW_FINISHEDMANGA 3
-// Called by image viewing thread
-int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
+int loadNewPageFile(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
 	popupMessage("Loading...",0,0);
 	int i;
 	if (needUpdateFileListing){
@@ -81,7 +80,7 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	}
 	if (totalDownloadedFiles!=-1){
 		if (totalDownloadedFiles>_mangaDirectoryLength){
-			popupMessage("This...is so Rong. By that, I mean there are less files than there should be.",1,0);
+			popupMessage("This...is so Rong. By that, I mean there are fewer files than there should be.",1,0);
 			return LOADNEW_RETURNEDSAME;
 		}
 		_mangaDirectoryLength=totalDownloadedFiles;
@@ -118,7 +117,7 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 			}
 			controlsEnd();
 		}
-		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset);
+		return loadNewPageFile(_toStorePage,_currentRelativeFilename,_currentOffset);
 	}
 	if (*_toStorePage!=NULL){
 		freeTexture(*_toStorePage);
@@ -130,7 +129,7 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	if (hasImageExtension(_tempPathFixBuffer)){
 		*_toStorePage = loadLoadableImage(_tempPathFixBuffer);
 	}else{
-		return loadNewPage(_toStorePage,_currentRelativeFilename,_currentOffset+1);
+		return loadNewPageFile(_toStorePage,_currentRelativeFilename,_currentOffset+1);
 	}
 	free(_tempPathFixBuffer);
 	if (*_currentRelativeFilename!=NULL){
@@ -140,5 +139,73 @@ int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, in
 	strcpy(*_currentRelativeFilename,_mangaDirectoryFilenames[_startIndex]);
 	return LOADNEW_LOADEDNEW;
 }
+
+#if RENDERER == REND_VITA2D
+#include <jpeglib.h>
+#include <png.h>
+#define PNG_SIGSIZE (8)
+vita2d_texture *_vita2d_load_JPEG_generic(struct jpeg_decompress_struct *jinfo, struct jpeg_error_mgr *jerr);
+vita2d_texture *_vita2d_load_PNG_generic(const void *io_ptr, png_rw_ptr read_data_fn);
+
+void _png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length)
+{
+	struct decstate* d = png_get_io_ptr(png_ptr);
+	decryptmore(d,data,length);
+}
+#endif
+
+int loadNewPageArchive(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
+	uint64_t _len = dread64(d);
+	if (*_toStorePage!=NULL){
+		freeTexture(*_toStorePage);
+		*_toStorePage=NULL;
+	}
+	if (decryptioneof(d)){
+		return LOADNEW_FINISHEDMANGA;
+	}
+	
+	#if RENDERER == REND_SDL
+	unsigned char* _bytes = malloc(_len);
+	decryptmore(d,_bytes,_len);
+	if (_bytes[0]==0x89){ // png
+		*_toStorePage=loadPNGBuffer(_bytes,_len);
+	}else if (_bytes[0]==0xFF){ // jpg
+		*_toStorePage=loadJPGBuffer(_bytes,_len);
+	}
+	free(_bytes);
+	#elif RENDERER == REND_VITA2D
+
+	unsigned char _firstByte;
+	decryptmore(d,&_firstByte,1);
+	if (_firstByte==0x89){ // png
+		png_byte pngsig[PNG_SIGSIZE];
+		if (png_sig_cmp(pngsig,0,PNG_SIGSIZE)!=0){
+			fprintf(stderr,"bad png\n");
+		}
+		*_toStorePage=_vita2d_load_PNG_generic(d, _png_read_callback);
+	}else if (_firstByte==0xFF){
+	}else{
+		// TODO - either just fast forward through the rest of the file OR make sure only png or jpg end up in archive.
+	}
+	
+	#else
+	#warning no loader for this
+	#endif
+	return LOADNEW_RETURNEDSAME;
+}
+
+// Called by image viewing thread
+int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
+	if (d){
+		if (_directionOffset<0){
+			return LOADNEW_RETURNEDSAME;
+		}
+		return loadNewPageArchive(_toStorePage,_currentRelativeFilename,_directionOffset,d);
+	}else{
+		return loadNewPageFile(_toStorePage,_currentRelativeFilename,_directionOffset);
+	}
+	
+}
+
 //////
 #endif

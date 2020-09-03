@@ -38,7 +38,7 @@
 	#include <psp2/display.h>
 	#include <psp2/apputil.h>
 	
-	#include <vita2d.h>
+	#include <libvita2dplusbloat/vita2d.h>
 	
 	#define SCE_IME_DIALOG_MAX_TITLE_LENGTH	(128)
 	#define SCE_IME_DIALOG_MAX_TEXT_LENGTH	(512)
