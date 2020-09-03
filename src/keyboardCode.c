@@ -21,10 +21,10 @@
 // Returns malloc'd string if user entered something. NULL if they canceled.
 //char* userKeyboardInput(char* _defaultText, char* _title, int _maxInputLength)
 
-#include <GeneralGoodConfig.h>
+#include <goodbrew/config.h>
 #include <stddef.h>
 
-#if PLATFORM == PLAT_VITA
+#if GBPLAT == GB_VITA
 	#include <stdio.h>
 	#include <string.h>
 	#include <stdlib.h>
@@ -157,9 +157,9 @@
 		return _resultText;
 	}
 
-#elif PLATFORM == PLAT_COMPUTER
+#elif GBPLAT == GB_LINUX || GBPLAT == GB_WINDOWS
 	#include <stdio.h>
-	#include <GeneralGood.h>
+	#include <goodbrew/useful.h>
 
 	// Should return string. malloc'd
 	// Can return NULL, meaning user canceled

@@ -71,7 +71,7 @@ void readPad(){
 
 // My code
 #include "photoExtended.h"
-char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
+char* photoViewer(crossTexture* _passedTexture, char* _currentRelativeFilename){
 	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
 		if (isHArchive(_currentRelativeFilename)){
@@ -82,7 +82,7 @@ char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 		}
 	}
 	char _isSingleImageMode = _passedTexture!=NULL;
-	CrossTexture* tex=NULL;
+	crossTexture* tex=NULL;
 	//char* _currentRelativeFilename;
 	if (_isSingleImageMode==1){
 		tex=_passedTexture;
@@ -99,18 +99,18 @@ char* photoViewer(CrossTexture* _passedTexture, char* _currentRelativeFilename){
 		drawTexture(tex,0,0);
 		endDrawing();
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_RIGHT) || wasJustPressed(SCE_CTRL_LEFT)){
+		if (wasJustPressed(BUTTON_RIGHT) || wasJustPressed(BUTTON_LEFT)){
 			if (_isSingleImageMode==1){
 				freeTexture(tex);
 				break;
 			}
-			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(SCE_CTRL_RIGHT) ? 1 : -1,myarchive);
+			int _loadResult = loadNewPage(&tex,&_currentRelativeFilename,wasJustPressed(BUTTON_RIGHT) ? 1 : -1,myarchive);
 			if (_loadResult==LOADNEW_LOADEDNEW){
 			}else if (_loadResult==LOADNEW_FINISHEDMANGA){
 				break;
 			}
 		}
-		if (wasJustPressed(SCE_CTRL_CIRCLE)){
+		if (wasJustPressed(BUTTON_B)){
 			break;
 		}
 		controlsEnd();

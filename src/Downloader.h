@@ -185,7 +185,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 	while (1){
 		FpsCapStart();
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_DOWN) || (dasTime==0 && isDown(SCE_CTRL_DOWN))){
+		if (wasJustPressed(BUTTON_DOWN) || (dasTime==0 && isDown(BUTTON_DOWN))){
 			if (dasTime!=0){
 				dasTime=DASWAITINITIAL;
 			}else{
@@ -194,7 +194,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 			_selection = moveCursor(_selection,_listSize,1,1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-		}else if (wasJustPressed(SCE_CTRL_UP) || (dasTime==0 && isDown(SCE_CTRL_UP))){
+		}else if (wasJustPressed(BUTTON_UP) || (dasTime==0 && isDown(BUTTON_UP))){
 			if (dasTime!=0){
 				dasTime=DASWAITINITIAL;
 			}else{
@@ -203,15 +203,15 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 			_selection = moveCursor(_selection,_listSize,1,-1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-		}else if (wasJustPressed(SCE_CTRL_RIGHT)){
+		}else if (wasJustPressed(BUTTON_RIGHT)){
 			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-		}else if (wasJustPressed(SCE_CTRL_LEFT)){
+		}else if (wasJustPressed(BUTTON_LEFT)){
 			_selection = moveCursor(_selection,_listSize,0,LISTLEFTRIGHTJUMPOFFSET*-1);
 			_selectionListOffset = calculateListOffset(_selection,_optionsPerScreen,_listSize);
 			_scrollStatus = SCROLLSTATUS_NEEDCHECK;
-		}else if (wasJustPressed(SCE_CTRL_CROSS)){
+		}else if (wasJustPressed(BUTTON_A)){
 			if (_multiList==NULL){
 				_valueToReturn = _selection+1;
 				break;
@@ -222,7 +222,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 					_selectedList[_selection]=0;
 				}
 			}
-		}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
+		}else if (wasJustPressed(BUTTON_B)){
 			if (_multiList!=NULL){
 				if (popupMessage("Are you sure you would like to go back? You will loose all your selected entries. (If you want to keep your selected entries, answer \"no\" to this question then press START.)",1,1)==1){
 					_valueToReturn = -1;
@@ -232,7 +232,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				_valueToReturn = -1;
 				break;
 			}
-		}else if (wasJustPressed(SCE_CTRL_SQUARE)){
+		}else if (wasJustPressed(BUTTON_Y)){
 			// SEARCH LIST FUNCTION
 			char* _tempUserAnswer = userKeyboardInput(_lastUserSearchTerm!=NULL ? _lastUserSearchTerm : "","Search",99);
 			if (_lastUserSearchTerm!=NULL){
@@ -252,7 +252,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				}
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 			}
-		}else if (wasJustPressed(SCE_CTRL_RTRIGGER)){
+		}else if (wasJustPressed(BUTTON_R)){
 			if (_lastUserSearchTerm!=NULL){
 				for (i=_lastSearchResult!=_listSize-1 ? _lastSearchResult+1 : 0;i<_listSize;i++){
 					if (strcasestr(_currentList[i],_lastUserSearchTerm)!=NULL){
@@ -270,7 +270,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				}
 				_scrollStatus = SCROLLSTATUS_NEEDCHECK;
 			}
-		}else if (wasJustPressed(SCE_CTRL_START)){
+		}else if (wasJustPressed(BUTTON_START)){
 			if (_multiList!=NULL){
 				freeLinkedList(_multiList);
 				_multiList = calloc(1,sizeof(NathanLinkedList));
@@ -284,12 +284,12 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				_valueToReturn = (intptr_t)(_multiList);
 				break;
 			}
-		}else if (wasJustPressed(SCE_CTRL_TRIANGLE)){ // List more info
+		}else if (wasJustPressed(BUTTON_X)){ // List more info
 			if (passedState!=NULL){
 				callListMoreInfo(passedState,_luaListId,_selection+1);
 			}
 		}
-		if (isDown(SCE_CTRL_DOWN) || isDown(SCE_CTRL_UP)){
+		if (isDown(BUTTON_DOWN) || isDown(BUTTON_UP)){
 			if (dasTime>0){
 				--dasTime;
 			}
@@ -302,45 +302,45 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 		for (i=0;i<_optionsPerScreen;i++){
 			if (i+_selectionListOffset!=_selection){
 				if (_multiList==NULL){
-					goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+					gbDrawText(mainFont,cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],COLOROPTION);
 				}else{
 					if (_selectedList[i+_selectionListOffset]==1){
-						goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLORMARKED);
+						gbDrawText(mainFont,cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],COLORMARKED);
 					}else{
-						goodDrawTextColored(cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],fontSize,COLOROPTION);
+						gbDrawText(mainFont,cursorWidth+5,i*currentTextHeight,_currentList[i+_selectionListOffset],COLOROPTION);
 					}
 				}
 			}
 		}
 		if (_multiList==NULL){
 			if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
-				goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+				gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),COLORSELECTED);
 			}else{
-				goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+				gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),COLORSELECTED);
 			}
 		}else{
 			if (_scrollStatus!=SCROLLSTATUS_NEEDCHECK){
 				if (_selectedList[_selection]==1){
-					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORMARKEDHOVER);
+					gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),COLORMARKEDHOVER);
 				}else{
-					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),fontSize,COLORSELECTED);
+					gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,&(_currentList[_selection][_scrollCharOffset]),COLORSELECTED);
 				}
 			}else{
 				if (_selectedList[_selection]==1){
-					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORMARKEDHOVER );
+					gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),COLORMARKEDHOVER );
 				}else{
-					goodDrawTextColored(cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),fontSize,COLORSELECTED);
+					gbDrawText(mainFont,cursorWidth+5,(_selection-_selectionListOffset)*currentTextHeight,(_currentList[_selection]),COLORSELECTED);
 				}
 				
 			}
 		}
-		goodDrawTextColored(0,(_selection-_selectionListOffset)*currentTextHeight,">",fontSize,COLORSELECTED);
+		gbDrawText(mainFont,0,(_selection-_selectionListOffset)*currentTextHeight,">",COLORSELECTED);
 		endDrawing();
 
 		// Timer until long words start to scroll.
 		if (_scrollStatus!=SCROLLSTATUS_NOSCROLL){
 			if (_scrollStatus==SCROLLSTATUS_NEEDCHECK){
-				if (textWidth(fontSize,_currentList[_selection])+cursorWidth+5>screenWidth){
+				if (textWidth(mainFont,_currentList[_selection])+cursorWidth+5>screenWidth){
 					_scrollStatus = SCROLLSTATUS_WAITING;	
 				}
 				_framesUntilScroll=60;
@@ -356,7 +356,7 @@ intptr_t showListLua(char** _currentList, int _listSize, int _startingSelection,
 				if (_framesUntilScroll==0){
 					_framesUntilScroll = SCROLLCHARSPEED;
 					_scrollCharOffset++;
-					if (textWidth(fontSize,&(_currentList[_selection][_scrollCharOffset]))+cursorWidth+5<screenWidth){
+					if (textWidth(mainFont,&(_currentList[_selection][_scrollCharOffset]))+cursorWidth+5<screenWidth){
 						_scrollStatus = SCROLLSTATUS_ENDWAITPLUSONE;
 						_framesUntilScroll=SCROLLCHARSPEED;
 					}
@@ -418,33 +418,33 @@ int inputNumber(int _startingNumber){
 		FpsCapStart();
 
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_UP)){
+		if (wasJustPressed(BUTTON_UP)){
 			_currentNumber+=1;
 			gooditoa(_currentNumber,_numberTextBuffer,10);
-		}else if (wasJustPressed(SCE_CTRL_DOWN)){
+		}else if (wasJustPressed(BUTTON_DOWN)){
 			_currentNumber-=1;
 			if (_currentNumber<0){
 				_currentNumber=0;
 			}
 			gooditoa(_currentNumber,_numberTextBuffer,10);
-		}else if (wasJustPressed(SCE_CTRL_RIGHT)){
+		}else if (wasJustPressed(BUTTON_RIGHT)){
 			_currentNumber+=LISTLEFTRIGHTJUMPOFFSET;
 			gooditoa(_currentNumber,_numberTextBuffer,10);
-		}else if (wasJustPressed(SCE_CTRL_LEFT)){
+		}else if (wasJustPressed(BUTTON_LEFT)){
 			_currentNumber-=LISTLEFTRIGHTJUMPOFFSET;
 			if (_currentNumber<0){
 				_currentNumber=0;
 			}
 			gooditoa(_currentNumber,_numberTextBuffer,10);
-		}else if (wasJustPressed(SCE_CTRL_CROSS)){
+		}else if (wasJustPressed(BUTTON_A)){
 			return _currentNumber;
-		}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
+		}else if (wasJustPressed(BUTTON_B)){
 			return _startingNumber;
 		}
 		controlsEnd();
 
 		startDrawing();
-		goodDrawTextColored(0,0,_numberTextBuffer,fontSize,COLORSELECTED);
+		gbDrawText(mainFont,0,0,_numberTextBuffer,COLORSELECTED);
 		endDrawing();
 
 		FpsCapWait();
@@ -651,8 +651,8 @@ void doScript(char* luaFileToUse, char _asIgo){
 // Prompt the user to choose a script file from the proper script directory. Returned string is malloc'd
 char* chooseScript(){
 	// Select download script
-	CROSSDIR dir;
-	CROSSDIRSTORAGE lastStorage;
+	crossDir dir;
+	crossDirStorage lastStorage;
 	dir = openDirectory (downloadersLocation);
 	if (dirOpenWorked(dir)==0){
 		popupMessage("Script directory missing! It should've been included in the VPK. So....MyLegGuy probably forgot to include it with the VPK. You should go give him a heads up. Pressing X will show you the path of the folder that is supposed to exist.",1,0);
@@ -830,7 +830,7 @@ int L_waitForUserInputs(lua_State* passedState){
 
 	unsigned char _saveOrLoadSlot=0;
 	char _userDidQuit=0;
-	short _colonSpaceWidth=textWidth(fontSize,": ");
+	short _colonSpaceWidth=textWidth(mainFont,": ");
 	// - slot 1]
 	char _slotString[13] = " - slot 0]";
 	char _currentSlotExists;
@@ -862,12 +862,12 @@ int L_waitForUserInputs(lua_State* passedState){
 	while (1){
 		FpsCapStart();
 		controlsStart();
-		if (wasJustPressed(SCE_CTRL_DOWN)){
+		if (wasJustPressed(BUTTON_DOWN)){
 			_selection++;
 			if ((_saveAndLoadEnabled==1 && _selection>currentQueue+2) || (_saveAndLoadEnabled==0 && _selection>currentQueue)){
 				_selection=0;
 			}
-		}else if (wasJustPressed(SCE_CTRL_UP)){
+		}else if (wasJustPressed(BUTTON_UP)){
 			_selection--;
 			if (_selection<0){
 				if (_saveAndLoadEnabled==1){
@@ -876,7 +876,7 @@ int L_waitForUserInputs(lua_State* passedState){
 					_selection=currentQueue;
 				}
 			}
-		}else if (wasJustPressed(SCE_CTRL_LEFT)){
+		}else if (wasJustPressed(BUTTON_LEFT)){
 			if (_selection<currentQueue){
 				if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 					(*((int*)(userInputResults[_selection])))--;
@@ -890,7 +890,7 @@ int L_waitForUserInputs(lua_State* passedState){
 					_currentSlotExists = checkFileExist(_compiledOptionsPath);
 				}
 			}
-		}else if (wasJustPressed(SCE_CTRL_RIGHT)){
+		}else if (wasJustPressed(BUTTON_RIGHT)){
 			if (_selection<currentQueue){
 				if (inputTypeQueue[_selection]==INPUTTYPENUMBER){
 					(*((int*)(userInputResults[_selection])))++;
@@ -904,7 +904,7 @@ int L_waitForUserInputs(lua_State* passedState){
 					_currentSlotExists = checkFileExist(_compiledOptionsPath);
 				}
 			}
-		}else if (wasJustPressed(SCE_CTRL_CROSS)){
+		}else if (wasJustPressed(BUTTON_A)){
 			if (_saveAndLoadEnabled==1){
 				if (_selection==currentQueue){
 					_currentSlotExists=1;
@@ -1047,50 +1047,50 @@ int L_waitForUserInputs(lua_State* passedState){
 					popupMessage("Error - No input type?",1,0);
 				}
 			}
-		}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
+		}else if (wasJustPressed(BUTTON_B)){
 			_userDidQuit=1;
 			break;
-		}else if (wasJustPressed(SCE_CTRL_SQUARE)){
+		}else if (wasJustPressed(BUTTON_Y)){
 			if (_selection<currentQueue){
 				popupMessage(longNameQueue[_selection],1,0);
 			}
 		}
 		controlsEnd();
 		startDrawing();
-		goodDrawTextColored(0,currentTextHeight*_selection,">",fontSize,COLORSELECTED);
+		gbDrawText(mainFont,0,currentTextHeight*_selection,">",COLORSELECTED);
 		for (i=0;i<currentQueue;i++){
 			int _currentDrawWidth=cursorWidth+5;
-			goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,shortNameQueue[i],fontSize,COLOROPTION);
-			_currentDrawWidth+=textWidth(fontSize,shortNameQueue[i]);
-			goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,": ",fontSize,COLOROPTION);
+			gbDrawText(mainFont,_currentDrawWidth,currentTextHeight*i,shortNameQueue[i],COLOROPTION);
+			_currentDrawWidth+=textWidth(mainFont,shortNameQueue[i]);
+			gbDrawText(mainFont,_currentDrawWidth,currentTextHeight*i,": ",COLOROPTION);
 			_currentDrawWidth+=_colonSpaceWidth;
 			if (inputTypeQueue[i]==INPUTTYPELIST){
 				if (_listEntries[i]!=NULL){
-					goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)userInputResults[i])-1],fontSize,COLORSELECTED);
+					gbDrawText(mainFont,_currentDrawWidth,currentTextHeight*i,_listEntries[i][*((int*)userInputResults[i])-1],COLORSELECTED);
 				}
 			}else if (inputTypeQueue[i]==INPUTTYPENUMBER){
 				char _tempNumberBuffer[10];
 				gooditoa(*((int*)userInputResults[i]),_tempNumberBuffer,10);
-				goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,fontSize,COLORSELECTED);
+				gbDrawText(mainFont,_currentDrawWidth,currentTextHeight*i,_tempNumberBuffer,COLORSELECTED);
 			}else if (inputTypeQueue[i]==INPUTTYPESTRING){
 				if (userInputResults[i]!=NULL){
-					goodDrawTextColored(_currentDrawWidth,currentTextHeight*i,userInputResults[i],fontSize,COLORSELECTED);
+					gbDrawText(mainFont,_currentDrawWidth,currentTextHeight*i,userInputResults[i],COLORSELECTED);
 				}
 			}
 		}
 		if (_saveAndLoadEnabled==1){
-			goodDrawTextColored(cursorWidth+5,currentTextHeight*i,"[Save",fontSize,COLOROPTION);
-			goodDrawTextColored(cursorWidth+5,currentTextHeight*(i+1),"[Load",fontSize,COLOROPTION);
+			gbDrawText(mainFont,cursorWidth+5,currentTextHeight*i,"[Save",COLOROPTION);
+			gbDrawText(mainFont,cursorWidth+5,currentTextHeight*(i+1),"[Load",COLOROPTION);
 			if (_currentSlotExists==1){
-			goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORMAYBE);
-			goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORVALID);
+			gbDrawText(mainFont,cursorWidth+5+textWidth(mainFont,"[Save"),currentTextHeight*i,_slotString,COLORMAYBE);
+			gbDrawText(mainFont,cursorWidth+5+textWidth(mainFont,"[Load"),currentTextHeight*(i+1),_slotString,COLORVALID);
 			}else{
-			goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Save"),currentTextHeight*i,_slotString,fontSize,COLORVALID);
-			goodDrawTextColored(cursorWidth+5+textWidth(fontSize,"[Load"),currentTextHeight*(i+1),_slotString,fontSize,COLORINVALID);
+			gbDrawText(mainFont,cursorWidth+5+textWidth(mainFont,"[Save"),currentTextHeight*i,_slotString,COLORVALID);
+			gbDrawText(mainFont,cursorWidth+5+textWidth(mainFont,"[Load"),currentTextHeight*(i+1),_slotString,COLORINVALID);
 			}
-			goodDrawTextColored(cursorWidth+5,currentTextHeight*(i+2),"Done",fontSize,COLOROPTION);
+			gbDrawText(mainFont,cursorWidth+5,currentTextHeight*(i+2),"Done",COLOROPTION);
 		}else{
-			goodDrawTextColored(cursorWidth+5,currentTextHeight*i,"Done",fontSize,COLOROPTION);
+			gbDrawText(mainFont,cursorWidth+5,currentTextHeight*i,"Done",COLOROPTION);
 		}
 		endDrawing();
 		
@@ -1144,7 +1144,7 @@ int L_loadImageFromUrl(lua_State* passedState){
 	void* _foundBuffer;
 	downloadWebpageData(lua_tostring(passedState,1),(char**)&_foundBuffer,&_foundSize);
 	int _loadFileType = lua_tonumber(passedState,2);
-	CrossTexture* _loadedUrlTexture;
+	crossTexture* _loadedUrlTexture;
 	if (_loadFileType == FILETYPE_PNG){
 		_loadedUrlTexture = loadPNGBuffer(_foundBuffer,_foundSize);
 	}else if (_loadFileType == FILETYPE_JPG){
@@ -1158,14 +1158,14 @@ int L_loadImageFromUrl(lua_State* passedState){
 	return 1;
 }
 int L_photoViewer(lua_State* passedState){
-	char* _tempReturned = photoViewer((CrossTexture*)lua_touserdata(passedState,1),NULL);
+	char* _tempReturned = photoViewer((crossTexture*)lua_touserdata(passedState,1),NULL);
 	if (_tempReturned){
 		free(_tempReturned);
 	}
 	return 0;
 }
 int L_freeTexture(lua_State* passedState){
-	freeTexture((CrossTexture*)lua_touserdata(passedState,1));
+	freeTexture((crossTexture*)lua_touserdata(passedState,1));
 	return 0;
 }
 int L_enableDownloadDebugInfo(lua_State* passedState){
@@ -1283,6 +1283,7 @@ void initDownloadBroad(){
 	L = luaL_newstate();
 	luaL_openlibs(L);
 	MakeLuaUseful();
+	char tempPathFixBuffer[256];
 	fixPath(CONSTANTCERTFILELOCATION,tempPathFixBuffer,TYPE_EMBEDDED);
 	initDownload(checkFileExist(tempPathFixBuffer) ? tempPathFixBuffer : NULL);
 	// Construct fixed paths

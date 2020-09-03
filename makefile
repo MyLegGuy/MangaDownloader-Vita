@@ -3,10 +3,10 @@ TITLE_ID = LUAMANGAS
 TARGET   = MangaDownloader
 OBJS     = src/main.o src/fpsCapper.o src/keyboardCode.o src/linkedList.o src/netCode.o src/openBSDstrcharstr.o src/decrypt.o
 
-LIBS = -lGeneralGood -lvita2dplusbloat -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
+LIBS = -lgoodbrewvita -lvita2dplusbloat -lSceAppUtil_stub -lSceNet_stub -lSceHttp_stub -lSceNetCtl_stub \
 	-lSceDisplay_stub -lSceGxm_stub -lSceSysmodule_stub -lSceCtrl_stub \
 	-lSceCommonDialog_stub -lfreetype -lpng -ljpeg -lz -lm -lc -llua \
-	-lm -lcurl -lssl -lcrypto -lz -lpthread -lSceAppMgr_stub -lcrypto
+	-lm -lcurl -lssl -lcrypto -lz -lpthread -lSceAppMgr_stub -lSceTouch_stub -lcrypto
 
 PREFIX  = arm-vita-eabi
 CC      = $(PREFIX)-gcc

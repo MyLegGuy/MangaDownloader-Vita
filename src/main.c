@@ -42,12 +42,18 @@ TODO - Ability to delete all .lastSelection files
 #define FILETYPE_JPG 1
 #define FILETYPE_PNG 2
 
-#include "GeneralGoodConfig.h"
-#include "GeneralGoodExtended.h"
-#include "GeneralGood.h"
-#include "GeneralGoodGraphics.h"
-#include "GeneralGoodText.h"
-#include "GeneralGoodImages.h"
+#if GBPLAT == GB_VITA
+#include <psp2/ctrl.h>
+#endif
+
+#include <goodbrew/config.h>
+#include <goodbrew/useful.h>
+#include <goodbrew/base.h>
+#include <goodbrew/graphics.h>
+#include <goodbrew/images.h>
+#include <goodbrew/text.h>
+#include <goodbrew/controls.h>
+#include <goodbrew/paths.h>
 #include "main.gfx.h"
 #include "fpsCapper.h"
 #include "keyboardCode.h"
@@ -57,16 +63,23 @@ int currentTextHeight=0;
 int screenHeight;
 int screenWidth;
 int cursorWidth;
+crossFont* mainFont;
 #include "photo.h"
 #include "Downloader.h"
 char* dataFolderRoot;
 
 char* ANDROIDPACKAGENAME = "com.mylegguy.lua.manga";
 // 9 characters
-char* VITAAPPID = "LUAMANGAS";
+char* vitaAppId = "LUAMANGAS";
 /////////////////////////////////////////////////////////
 void XOutFunction(){
 	exit(0);
+}
+float fixX(float x){
+	return x;
+}
+float fixY(float y){
+	return y;
 }
 char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	controlsEnd();
@@ -85,7 +98,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	for (i = 0; i < totalMessageLength; i++){
 		if (message[i]==32){ // Only check when we meet a space. 32 is a space in ASCII
 			message[i]='\0';
-			if (textWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+			if (textWidth(mainFont,&(message[lastNewlinePosition+1]))>screenWidth-20){
 				char _didWork=0;
 				for (j=i-1;j>lastNewlinePosition+1;j--){
 					//printf("J:%d\n",j);
@@ -109,7 +122,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 		}
 	}
 	// This code will make a new line if there needs to be one because of the last word
-	if (textWidth(fontSize,&(message[lastNewlinePosition+1]))>screenWidth-20){
+	if (textWidth(mainFont,&(message[lastNewlinePosition+1]))>screenWidth-20){
 		for (j=totalMessageLength-1;j>lastNewlinePosition+1;j--){
 			if (message[j]==32){
 				message[j]='\0';
@@ -129,7 +142,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 		FpsCapStart();
 		controlsStart();
 		int _lastStrlen=0;
-		if (wasJustPressed(SCE_CTRL_CROSS)){
+		if (wasJustPressed(BUTTON_A)){
 			if (_numberOfLines<=0){
 				if (_isQuestion==1){
 					controlsEnd();
@@ -139,7 +152,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 			}
 			offsetStrlen += strlen(&message[offsetStrlen])+1;
 			_numberOfLines--;
-		}else if (wasJustPressed(SCE_CTRL_CIRCLE)){
+		}else if (wasJustPressed(BUTTON_B)){
 			if (_isQuestion==1){
 				controlsEnd();
 				return 0;
@@ -150,7 +163,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 		// We need this variable so we know the offset in the message for the text that is for the next line
 		_lastStrlen=0;
 		for (i=0;i<currentlyVisibleLines;i++){
-			goodDrawTextColored(5,textHeight(fontSize)*i,&message[_lastStrlen+offsetStrlen],fontSize,COLORSTATUS);
+			gbDrawText(mainFont,5,textHeight(mainFont)*i,&message[_lastStrlen+offsetStrlen],COLORSTATUS);
 			// This offset will have the first letter for the next line
 			_lastStrlen = strlen(&message[_lastStrlen+offsetStrlen])+1+_lastStrlen;
 			if (_lastStrlen>=totalMessageLength){
@@ -164,7 +177,7 @@ char popupMessage(const char* _tempMsg, char _waitForAButton, char _isQuestion){
 	return 0;
 }
 void WriteToDebugFile(const char* stuff){
-	#if PLATFORM == PLAT_VITA
+	#if GBPLAT == GB_VITA
 		FILE *fp;
 		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
 		fprintf(fp,"%s\n",stuff);
@@ -175,14 +188,14 @@ void WriteToDebugFile(const char* stuff){
 }
 // Does not clear the debug file at ux0:data/LUAMANGAS/a.txt  , I promise.
 void ClearDebugFile(){
-	#if PLATFORM == PLAT_VITA
+	#if GBPLAT == GB_VITA
 		FILE *fp;
 		fp = fopen("ux0:data/LUAMANGAS/a.txt", "w");
 		fclose(fp);
 	#endif
 }
 void WriteIntToDebugFile(int a){
-	#if PLATFORM == PLAT_VITA
+	#if GBPLAT == GB_VITA
 		FILE *fp;
 		fp = fopen("ux0:data/LUAMANGAS/a.txt", "a");
 		fprintf(fp,"%d\n", a);
@@ -216,7 +229,7 @@ static char getImageType(unsigned char _magicStart){
 		return 0;
 	}
 }
-CrossTexture* loadLoadableImage(char* path){
+crossTexture* loadLoadableImage(char* path){
 	FILE* fp=fopen(path,"rb");
 	if (fp==NULL){
 		return NULL;
@@ -266,8 +279,8 @@ char** getDirectory(char* _path, int* _lengthStorage){
 	NathanLinkedList* _foundFileList = calloc(1,sizeof(NathanLinkedList));
 	int i;
 	// Select download script
-	CROSSDIR dir;
-	CROSSDIRSTORAGE lastStorage;
+	crossDir dir;
+	crossDirStorage lastStorage;
 	dir = openDirectory (_path);
 	if (dirOpenWorked(dir)==0){
 		popupMessage("Failed to open directory.",1,0);
@@ -373,24 +386,28 @@ signed int searchCharArray(char** _passedArray, int _passedLength, char* _search
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
-	initGraphics(640,480, &screenWidth, &screenHeight);
+	initGraphics(640,480, 0);
+	screenWidth=getScreenWidth();
+	screenHeight=getScreenHeight();
 	
 	// Text
-	fontSize=30;
-	#if PLATFORM != PLAT_VITA
-		fixPath("assets/LiberationSans-Regular.ttf",tempPathFixBuffer,TYPE_EMBEDDED);
-		loadFont(tempPathFixBuffer);
+	double _fontSize=30;
+	#if GBPLAT != GB_VITA
+		char* _path = fixPathAlloc("assets/LiberationSans-Regular.ttf",TYPE_EMBEDDED);
+		mainFont=loadFont(_path,_fontSize);
+		free(_path);
 	#else
-		loadFont("sa0:data/font/pvf/jpn0.pvf");
+		mainFont=loadFont("sa0:data/font/pvf/jpn0.pvf",_fontSize);
 	#endif
-	currentTextHeight = textHeight(fontSize);
-	cursorWidth = textWidth(fontSize,">");
+	currentTextHeight = textHeight(mainFont);
+	cursorWidth = textWidth(mainFont,">");
 	// Make data folder
+	char tempPathFixBuffer[256];
 	fixPath("",tempPathFixBuffer,TYPE_DATA);
 	createDirectory(tempPathFixBuffer);
 	dataFolderRoot = malloc(strlen(tempPathFixBuffer)+1);
 	strcpy(dataFolderRoot,tempPathFixBuffer);
-	#if PLATFORM == PLAT_VITA
+	#if GBPLAT == GB_VITA
 		// Magic fix for joysticks
 		sceCtrlSetSamplingMode(SCE_CTRL_MODE_ANALOG);
 	#endif
@@ -462,9 +479,7 @@ int main(int argc, char *argv[]){
 			signed char _lastMainMenuSelectioin = mainMenuSelection();
 		#endif
 		if (_lastMainMenuSelectioin==0){ // Main read
-			fixPath("",tempPathFixBuffer,TYPE_DATA);
-			char* _tempArgument = malloc(strlen(tempPathFixBuffer)+1);
-			strcpy(_tempArgument,tempPathFixBuffer); // Be safe. Don't want tempPathFixBuffer to be changed while we're using it.
+			char* _tempArgument = fixPathAlloc("",TYPE_DATA);
 			mainRead(_tempArgument);
 			free(_tempArgument);
 		}else if (_lastMainMenuSelectioin==1){ // Download

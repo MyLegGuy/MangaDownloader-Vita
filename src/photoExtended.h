@@ -50,15 +50,15 @@ int L_setMangaDoneDownloading(lua_State* passedState){
 #define LOADNEW_LOADEDNEW 1
 #define LOADNEW_DIDNTLOAD 2
 #define LOADNEW_FINISHEDMANGA 3
-int loadNewPageFile(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
+int loadNewPageFile(crossTexture** _toStorePage, char** _currentRelativeFilename, int _currentOffset){
 	popupMessage("Loading...",0,0);
 	int i;
 	if (needUpdateFileListing){
 		_mangaDirectoryLength=0;
 		needUpdateFileListing=0;
 		// Select download script
-		CROSSDIR dir;
-		CROSSDIRSTORAGE lastStorage;
+		crossDir dir;
+		crossDirStorage lastStorage;
 		dir = openDirectory (currentDownloadReaderDirectory);
 		if (dirOpenWorked(dir)==0){
 			popupMessage("Directory missing.",1,0);
@@ -109,7 +109,7 @@ int loadNewPageFile(CrossTexture** _toStorePage, char** _currentRelativeFilename
 		while (_cacheTotalDownloadedFiles==totalDownloadedFiles){
 			sceKernelDelayThread(350000); // Wait one fourth of a second
 			controlsStart();
-			if (wasJustPressed(SCE_CTRL_UP) || wasJustPressed(SCE_CTRL_LEFT)){
+			if (wasJustPressed(BUTTON_UP) || wasJustPressed(BUTTON_LEFT)){
 				// from vitashell
 				readPad();
 				readPad();
@@ -140,7 +140,7 @@ int loadNewPageFile(CrossTexture** _toStorePage, char** _currentRelativeFilename
 	return LOADNEW_LOADEDNEW;
 }
 
-#if RENDERER == REND_VITA2D
+#if GBREND == GBREND_VITA2D
 #include <jpeglib.h>
 #include <png.h>
 #define PNG_SIGSIZE (8)
@@ -154,7 +154,7 @@ void _png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length)
 }
 #endif
 
-int loadNewPageArchive(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
+int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
 	uint64_t _len = dread64(d);
 	if (*_toStorePage!=NULL){
 		freeTexture(*_toStorePage);
@@ -195,7 +195,7 @@ int loadNewPageArchive(CrossTexture** _toStorePage, char** _currentRelativeFilen
 }
 
 // Called by image viewing thread
-int loadNewPage(CrossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
+int loadNewPage(crossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
 	if (d){
 		if (_directionOffset<0){
 			return LOADNEW_RETURNEDSAME;

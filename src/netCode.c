@@ -18,7 +18,6 @@ Copyright (C) 2018 MyLegGuy
   3. This notice may not be removed or altered from any source distribution.
  */
 
-#include <GeneralGoodConfig.h>
 #include <stdlib.h>
 #include <string.h>
 

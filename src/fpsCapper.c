@@ -1,8 +1,9 @@
 #ifndef HAPPYFPSCAP
 #define HAPPYFPSCAP
 
-#include <GeneralGoodConfig.h>
-#include <GeneralGood.h>
+#include <goodbrew/config.h>
+#include <goodbrew/images.h>
+#include <goodbrew/base.h>
 
 #define MILISECONDSPERFRAME 16.667
 
@@ -11,14 +12,14 @@ u64 frameStartMiliseconds;
 u64 numberOfFrames;
 u64 tempHold;
 
-#if PLATFORM != PLAT_VITA
+#if GBPLAT != GB_VITA
 	void FpsCapStart(){
-		frameStartMiliseconds = getTicks();
+		frameStartMiliseconds = getMilli();
 	}
 	void FpsCapWait(){
 		// I just hope I only use this at the end of a frame....
 		numberOfFrames=numberOfFrames+1;
-		tempHold = getTicks();
+		tempHold = getMilli();
 		// LIMIT FPS
 		if (tempHold-frameStartMiliseconds<MILISECONDSPERFRAME){
 			wait( MILISECONDSPERFRAME - (tempHold-frameStartMiliseconds));

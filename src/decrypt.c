@@ -4,6 +4,7 @@
 #include <openssl/err.h>
 #include <openssl/rand.h>
 #include <string.h>
+#include <goodbrew/config.h>
 #define DECRYPTINBYTES 16000
 struct decstate{
 	const EVP_CIPHER* cipher;
@@ -15,7 +16,7 @@ struct decstate{
 	char isDone;
 };
 #include "cryptshared.h"
-#if PLATFORM == PLAT_VITA
+#if GBPLAT == GB_VITA
 uint32_t le32toh(uint32_t a){
 	return a;
 }
