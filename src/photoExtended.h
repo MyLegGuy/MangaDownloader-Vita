@@ -2,7 +2,7 @@
   Copyright (C) 2018 MyLegGuy
 
   This software is provided 'as-is', without any express or implied
-  warranty.  In no event will the authors be held liable for any damages
+  warranty.	 In no event will the authors be held liable for any damages
   arising from the use of this software.
 
   Permission is granted to anyone to use this software for any purpose,
@@ -10,11 +10,11 @@
   freely, subject to the following restrictions:
 
   1. The origin of this software must not be misrepresented; you must not
-     claim that you wrote the original software. If you use this software
-     in a product, an acknowledgment in the product documentation would be
-     appreciated but is not required.
+	 claim that you wrote the original software. If you use this software
+	 in a product, an acknowledgment in the product documentation would be
+	 appreciated but is not required.
   2. Altered source versions must be plainly marked as such, and must not be
-     misrepresented as being the original software.
+	 misrepresented as being the original software.
   3. This notice may not be removed or altered from any source distribution.
 */
 #ifndef PHOTOEXTENDEDHEADER
@@ -152,6 +152,34 @@ void _png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length)
 	struct decstate* d = png_get_io_ptr(png_ptr);
 	decryptmore(d,data,length);
 }
+// jpg
+#define JPGBUFFSIZE	 4096
+struct jpguserdata {
+	struct jpeg_source_mgr pub; // i'm bet this has to be first.
+	struct decstate* d;
+	long bytesLeft;
+	void* buff;
+};
+void jpgTermSource (j_decompress_ptr cinfo){}
+void jpgInitSource(j_decompress_ptr cinfo){}
+int jpegFillBuffer (j_decompress_ptr cinfo){
+	struct jpguserdata* src = (struct jpguserdata*)cinfo->src;
+	cinfo->src->next_input_byte=src->buff;
+	if (src->bytesLeft==0){
+		unsigned char _stuff[4]={0xFF,JPEG_EOI,0,0};
+		memcpy(src->buff,_stuff,4);
+		cinfo->src->bytes_in_buffer = 2;
+		return 1;
+	}
+	long _numPut=JPGBUFFSIZE;
+	if (_numPut>src->bytesLeft){
+		_numPut=src->bytesLeft;
+	}
+	decryptmore(src->d,src->buff,_numPut);
+	src->bytesLeft-=_numPut;
+	src->pub.bytes_in_buffer = _numPut;
+	return 1;
+}
 #endif
 
 int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
@@ -179,12 +207,49 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 	decryptmore(d,&_firstByte,1);
 	if (_firstByte==0x89){ // png
 		png_byte pngsig[PNG_SIGSIZE];
+		pngsig[0]=0x89;
+		decryptmore(d,&pngsig[0]+1,PNG_SIGSIZE-1);
 		if (png_sig_cmp(pngsig,0,PNG_SIGSIZE)!=0){
 			fprintf(stderr,"bad png\n");
+			goto err;
 		}
 		*_toStorePage=_vita2d_load_PNG_generic(d, _png_read_callback);
 		return LOADNEW_LOADEDNEW;
-	}else if (_firstByte==0xFF){
+	}else if (_firstByte==0xFF){ // jaypeg
+		unsigned int magic;
+		decryptmore(d,&magic,4);
+		if (magic != 0xE0FFD8FF && magic != 0xE1FFD8FF) {
+			fprintf(stderr,"bad jpg\n");
+			goto err;
+		}
+
+		struct jpeg_decompress_struct jinfo;
+		struct jpeg_error_mgr jerr;
+		
+		jinfo.err = jpeg_std_error(&jerr);
+
+		jpeg_create_decompress(&jinfo);
+		//
+		j_decompress_ptr cinfo=&jinfo;
+		cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo,JPOOL_PERMANENT,SIZEOF(struct jpguserdata));
+		struct jpguserdata* src = (struct jpguserdata*)cinfo->src;
+		src->pub.init_source = jpgInitSource;
+		src->pub.fill_input_buffer = fill_input_buffer;
+		src->pub.skip_input_data = skip_input_data; // uses the given read method?
+		src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method. not backtrack possible. */
+		src->pub.term_source = jpgTermSource;
+		src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
+		src->pub.next_input_byte = NULL; /* until buffer loaded */
+		src->d=d;
+		src->bytesLeft=_len-4;
+		src->buff=malloc(JPGBUFFSIZE);
+		//
+		jpeg_read_header(&jinfo, 1);
+		vita2d_texture *texture = _vita2d_load_JPEG_generic(&jinfo, &jerr);
+		free(src->buff);
+		jpeg_destroy_decompress(&jinfo);
+
+		return LOADNEW_LOADEDNEW;
 	}else{
 		// TODO - either just fast forward through the rest of the file OR make sure only png or jpg end up in archive.
 	}
@@ -192,6 +257,9 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 	#else
 	#warning no loader for this
 	#endif
+	return LOADNEW_RETURNEDSAME;
+err:
+	// TODO - skip through the rest of the file
 	return LOADNEW_RETURNEDSAME;
 }
 

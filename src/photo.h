@@ -23,6 +23,10 @@
 #ifndef __PHOTO_H__
 #define __PHOTO_H__
 
+#if GBPLAT == GB_VITA
+#include <psp2/power.h> 
+#endif
+
 #include "decrypt.h"
 
 char isHArchive(const char* _filename){
@@ -32,11 +36,9 @@ char isHArchive(const char* _filename){
 static char _cpuOverclocked=0;
 extern char* currentDownloadReaderDirectory;
 void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFilename){
-
 	if (!_cpuOverclocked){
 		_cpuOverclocked=1;
-		#if GBPLAT == GBPLAT_VITA
-		#warning a
+		#if GBPLAT == GB_VITA
 		scePowerSetArmClockFrequency(444);
 		#endif
 	}
