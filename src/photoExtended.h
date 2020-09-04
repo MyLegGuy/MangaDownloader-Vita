@@ -153,18 +153,25 @@ void _png_read_callback(png_structp png_ptr, png_bytep data, png_size_t length)
 	decryptmore(d,data,length);
 }
 // jpg
-#define JPGBUFFSIZE	 4096
+#define JPGBUFFSIZE	4096
 struct jpguserdata {
 	struct jpeg_source_mgr pub; // i'm bet this has to be first.
 	struct decstate* d;
 	long bytesLeft;
 	void* buff;
+	char _isFirstByte;
 };
-void jpgTermSource (j_decompress_ptr cinfo){}
+void jpgTermSource(j_decompress_ptr cinfo){}
 void jpgInitSource(j_decompress_ptr cinfo){}
-int jpegFillBuffer (j_decompress_ptr cinfo){
+int jpegFillBuffer(j_decompress_ptr cinfo){
 	struct jpguserdata* src = (struct jpguserdata*)cinfo->src;
 	cinfo->src->next_input_byte=src->buff;
+	if (src->_isFirstByte){ // we nabbed the first byte from the decrypt already, so fake it back in.
+		src->_isFirstByte=0;
+		*(unsigned char*)(src->buff)=0xFF;
+		cinfo->src->bytes_in_buffer = 1;
+		return 1;
+	}
 	if (src->bytesLeft==0){
 		unsigned char _stuff[4]={0xFF,JPEG_EOI,0,0};
 		memcpy(src->buff,_stuff,4);
@@ -180,6 +187,23 @@ int jpegFillBuffer (j_decompress_ptr cinfo){
 	src->pub.bytes_in_buffer = _numPut;
 	return 1;
 }
+void jpegSkipInputData (j_decompress_ptr cinfo, long num_bytes){ // borrowed from libjpeg
+	struct jpeg_source_mgr * src = cinfo->src;
+	if (num_bytes > 0) {
+		while (num_bytes > (long) src->bytes_in_buffer) {
+			num_bytes -= (long) src->bytes_in_buffer;
+			(void) (*src->fill_input_buffer) (cinfo);
+		}
+		src->next_input_byte += (size_t) num_bytes;
+		src->bytes_in_buffer -= (size_t) num_bytes;
+	}
+}
+void jpegErrorExit(j_common_ptr cinfo){
+	char buffer[JMSG_LENGTH_MAX];
+	(*cinfo->err->format_message) (cinfo, buffer);
+	WriteToDebugFile(buffer);
+	exit(1);
+}
 #endif
 
 int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilename, int _directionOffset, struct decstate* d){
@@ -192,7 +216,7 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		return LOADNEW_FINISHEDMANGA;
 	}
 
-	#if RENDERER == REND_SDL
+	#if GBREND == GBREND_SDL
 	unsigned char* _bytes = malloc(_len);
 	decryptmore(d,_bytes,_len);
 	if (_bytes[0]==0x89){ // png
@@ -201,7 +225,8 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		*_toStorePage=loadJPGBuffer(_bytes,_len);
 	}
 	free(_bytes);
-	#elif RENDERER == REND_VITA2D
+	return LOADNEW_LOADEDNEW;
+	#elif GBREND == GBREND_VITA2D
 
 	unsigned char _firstByte;
 	decryptmore(d,&_firstByte,1);
@@ -216,39 +241,38 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		*_toStorePage=_vita2d_load_PNG_generic(d, _png_read_callback);
 		return LOADNEW_LOADEDNEW;
 	}else if (_firstByte==0xFF){ // jaypeg
-		unsigned int magic;
-		decryptmore(d,&magic,4);
-		if (magic != 0xE0FFD8FF && magic != 0xE1FFD8FF) {
-			fprintf(stderr,"bad jpg\n");
-			goto err;
-		}
-
+		/* unsigned int magic; */
+		/* magic=_firstByte; */
+		/* decryptmore(d,(((unsigned char*)&magic)+1),3); */
+		/* if (magic != 0xE0FFD8FF && magic != 0xE1FFD8FF) { */
+		/* 	fprintf(stderr,"bad jpg\n"); */
+		/* 	goto err; */
+		/* } */
 		struct jpeg_decompress_struct jinfo;
 		struct jpeg_error_mgr jerr;
-		
 		jinfo.err = jpeg_std_error(&jerr);
-
+		jinfo.err->error_exit=jpegErrorExit;
 		jpeg_create_decompress(&jinfo);
 		//
 		j_decompress_ptr cinfo=&jinfo;
-		cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo,JPOOL_PERMANENT,SIZEOF(struct jpguserdata));
+		cinfo->src = (struct jpeg_source_mgr *)(*cinfo->mem->alloc_small)((j_common_ptr)cinfo,JPOOL_PERMANENT,sizeof(struct jpguserdata));
 		struct jpguserdata* src = (struct jpguserdata*)cinfo->src;
 		src->pub.init_source = jpgInitSource;
-		src->pub.fill_input_buffer = fill_input_buffer;
-		src->pub.skip_input_data = skip_input_data; // uses the given read method?
+		src->pub.fill_input_buffer = jpegFillBuffer;
+		src->pub.skip_input_data = jpegSkipInputData; // uses the given read method?
 		src->pub.resync_to_restart = jpeg_resync_to_restart; /* use default method. not backtrack possible. */
 		src->pub.term_source = jpgTermSource;
 		src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
 		src->pub.next_input_byte = NULL; /* until buffer loaded */
 		src->d=d;
-		src->bytesLeft=_len-4;
+		src->bytesLeft=_len-1;
 		src->buff=malloc(JPGBUFFSIZE);
+		src->_isFirstByte=1;
 		//
 		jpeg_read_header(&jinfo, 1);
-		vita2d_texture *texture = _vita2d_load_JPEG_generic(&jinfo, &jerr);
+		*_toStorePage=_vita2d_load_JPEG_generic(&jinfo, &jerr);
 		free(src->buff);
 		jpeg_destroy_decompress(&jinfo);
-
 		return LOADNEW_LOADEDNEW;
 	}else{
 		// TODO - either just fast forward through the rest of the file OR make sure only png or jpg end up in archive.

@@ -220,11 +220,9 @@ static char getImageType(unsigned char _magicStart){
 	}else if (_magicStart==0xFF){
 		return 2;
 	}/*else if (_magicStart==0x42){
-		return 3;
-		}*/
-	else if (_magicStart==0x01){
-		return 4;
-	}else{
+	   return 3;
+	   }*/
+	else{
 		return 0;
 	}
 }
@@ -242,9 +240,6 @@ crossTexture* loadLoadableImage(char* path){
 			return loadJPG(path);
 			/*case 3:
 			  return loadBMP(path);*/
-		case 4:
-			printf("todo - load it\n");
-			break;
 	}
 	return NULL;
 }
