@@ -380,7 +380,9 @@ signed int searchCharArray(char** _passedArray, int _passedLength, char* _search
 /////////////////////////////////////////////////////////
 void init(){
 	ClearDebugFile();
+	generalGoodInit();
 	initGraphics(640,480, 0);
+	controlsInit();
 	screenWidth=getScreenWidth();
 	screenHeight=getScreenHeight();
 	
@@ -462,7 +464,6 @@ void mainRead(char* _startingDirectory){
 	free(_currentDirectoryPath);
 	return;
 }
-
 int main(int argc, char *argv[]){
 	init();
 	initDownloadBroad();

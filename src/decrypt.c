@@ -14,7 +14,22 @@ struct decstate{
 	int decBuffOff; // offset when giving out more
 	int decBuffLeft; // how much is left to give out.
 	char isDone;
+	char isFreed;
+	int readCounter;
 };
+struct decstateplus{
+	struct decstate d;
+	int curPage;
+	int totalPages;
+};
+void myZeroBuff( void *v, size_t n ){
+	#ifdef __GNU_LIBRARY__
+	explicit_bzero(v,n);
+	#else
+	volatile unsigned char *p = v;
+	while( n-- ) *p++ = 0;
+	#endif
+}
 #include "cryptshared.h"
 #if GBPLAT == GB_VITA
 uint32_t le32toh(uint32_t a){
@@ -24,9 +39,33 @@ uint64_t le64toh(uint64_t a){
 	return a;
 }
 #endif
-struct decstate* mallocdecstate(){
-	return malloc(sizeof(struct decstate));
+/* struct decstate* mallocdecstate(){ */
+/* 	return malloc(sizeof(struct decstate)); */
+/* } */
+///
+struct decstate* mallocdecstateplus(){
+	struct decstateplus* _ret = malloc(sizeof(struct decstateplus));
+	_ret->curPage=0;
+	return (struct decstate*)_ret;
 }
+char decstateplusImGoingToNextPage(struct decstate* d){
+	struct decstateplus* p = (struct decstateplus*)d;
+	if ((p->curPage++)==p->totalPages){
+		return 1;
+	}
+	return 0;
+}
+void decstateplusSetTotalPages(struct decstate* d, int val){
+	struct decstateplus* p = (struct decstateplus*)d;
+	p->totalPages=val;
+}
+void decstateResetCounter(struct decstate* d){
+	d->readCounter=0;
+}
+int decstateReadCount(struct decstate* d){
+	return d->readCounter;
+}
+///
 void handleErrors(){
 	fprintf(stderr,"oh");
 	exit(1);
@@ -57,9 +96,12 @@ uint64_t read64(FILE* fp){
 	return le64toh(_read);
 }
 void freedecryptstate(struct decstate* d){
-	fclose(d->fp);
-	free(d->decBuff);
-	EVP_CIPHER_CTX_free(d->ctx);
+	if (!d->isFreed){
+		fclose(d->fp);
+		free(d->decBuff);
+		EVP_CIPHER_CTX_free(d->ctx);
+		d->isFreed=1;
+	}
 }
 void decryptmore(struct decstate* d, unsigned char* _retBuff, int _desiredBytes){
 top:
@@ -70,6 +112,7 @@ top:
 		_retBuff+=_numCopy;
 		d->decBuffLeft-=_numCopy;
 		d->decBuffOff+=_numCopy;
+		d->readCounter+=_numCopy;
 	}
 	if (_desiredBytes>0){
 		d->decBuffOff=0;
@@ -85,7 +128,7 @@ top:
 						}
 						goto skipregulardec;
 					}else{
-						memset(_retBuff,0,_desiredBytes);
+						myZeroBuff(_retBuff,_desiredBytes);
 						return;
 					}
 				}
@@ -108,12 +151,13 @@ uint64_t dread64(struct decstate* d){
 	return _ret;
 }
 void initdecstate(struct decstate* d, const char* _inFilename, const unsigned char* _password, int _passwordLen){
+	d->isFreed=0;
 	if (!(d->fp = fopen(_inFilename,"rb"))){
 		perror(NULL);
 		exit(1);
 	}
-	fgetc(d->fp); // skip magic
-	fgetc(d->fp);
+	fgetc(d->fp); // skip 01
+	fgetc(d->fp); // skip ENCVERSIONNUM
 	freadexpected(d->fp,"CMIS");
 	d->cipher = EVP_get_cipherbynid(read32(d->fp));
 	const EVP_MD* _hash = EVP_get_digestbynid(read32(d->fp));

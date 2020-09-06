@@ -28,14 +28,50 @@
 #endif
 
 #include "decrypt.h"
+#include "alternateKeyboard.h"
 
+static char* cryptPassword=NULL;
+static char clearRamPassRegistered=0;
+void clearRamPassword(){
+	if (cryptPassword){
+		int _len = strlen(cryptPassword);
+		myZeroBuff(cryptPassword,_len);
+		free(cryptPassword);
+		cryptPassword=NULL;
+	}
+}
 char isHArchive(const char* _filename){
 	int _len = strlen(_filename);
 	return (_len>=2 && _filename[_len-1]=='h' && _filename[_len-2]=='.');
 }
+void closeHArchive(struct decstate* _arc){
+	if (_arc){
+		freedecryptstate(_arc);
+		free(_arc);
+	}
+}
 static char _cpuOverclocked=0;
 extern char* currentDownloadReaderDirectory;
-void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFilename){
+char setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFilename){
+	if (!cryptPassword){
+	enterpass:
+		cryptPassword=alternateKeyboard();
+		if (!cryptPassword){
+			return 1;
+		}
+		if (!clearRamPassRegistered){
+			atexit(clearRamPassword);
+			clearRamPassRegistered=1;
+		}
+	}else{
+		controlsStart();
+		char _l = isDown(BUTTON_L);
+		controlsEnd();
+		if (_l){
+			clearRamPassword();
+			goto enterpass;
+		}
+	}
 	if (!_cpuOverclocked){
 		_cpuOverclocked=1;
 		#if GBPLAT == GB_VITA
@@ -43,28 +79,57 @@ void setupArchiveStuff(struct decstate** _retArc, const char* _currentRelativeFi
 		#endif
 	}
 	struct decstate* myarchive;
-	myarchive=mallocdecstate();
+	myarchive=mallocdecstateplus();
 	char* _tempPathFixBuffer = malloc(strlen(_currentRelativeFilename)+strlen(currentDownloadReaderDirectory)+1);
 	strcpy(_tempPathFixBuffer,currentDownloadReaderDirectory);
 	strcat(_tempPathFixBuffer,_currentRelativeFilename);
-	initdecstate(myarchive,_tempPathFixBuffer,(unsigned char*)"aaa",3);
+	initdecstate(myarchive,_tempPathFixBuffer,(unsigned char*)cryptPassword,strlen(cryptPassword));
 	free(_tempPathFixBuffer);
-	{ // skip header
-		unsigned char c;
-		for (int i=0;i<7;++i){
-			decryptmore(myarchive, &c, 1);
-		}
-		while(1){
-			decryptmore(myarchive, &c, 1);
-			if (c==00){
-				break;
+	{
+		{
+			char _buff[7];
+			decryptmore(myarchive,_buff, 7);
+			char* _expected="HMANGA\x01";
+			if (memcmp(_buff,_expected,7)!=0){
+				clearRamPassword();
+				closeHArchive(myarchive);
+				return 1;
 			}
 		}
-		for (int i=0;i<4;++i){
-			decryptmore(myarchive, &c, 1);
+		{
+			char* _str=malloc(100);
+			int _strSize=100;
+			int _strUsed=0;
+			while(1){
+				if (_strUsed>=_strSize){
+					char* _new = malloc(_strSize+100);
+					memcpy(_new,_str,_strSize);
+					memset(_str,0,_strSize);
+					free(_str);
+					_str=_new;
+					_strSize+=100;
+				}
+				char c;
+				decryptmore(myarchive, &c, 1);
+				_str[_strUsed++]=c;
+				if (c==0){
+					break;
+				}
+			}
+			printf("%s\n",_str);
+			popupMessage(_str,0,0);
+			memset(_str,0,_strSize);
+			free(_str);
 		}
+		uint32_t _pages;
+		decryptmore(myarchive, (unsigned char*)&_pages, 4);
+		#if GBPLAT != GB_VITA
+		_pages=le32toh(_pages);
+		#endif
+		decstateplusSetTotalPages(myarchive, _pages);
 	}
 	*_retArc=myarchive;
+	return 0;
 }
 
 #if GBREND == GBREND_SDL
@@ -86,7 +151,9 @@ char* photoViewer(crossTexture* _passedTexture, char* _currentRelativeFilename){
 	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
 		if (isHArchive(_currentRelativeFilename)){
-			setupArchiveStuff(&myarchive,_currentRelativeFilename);
+			if (setupArchiveStuff(&myarchive,_currentRelativeFilename)){
+				return NULL;
+			}
 			_currentRelativeFilename=NULL;
 		}else{
 			_currentRelativeFilename=strdup(_currentRelativeFilename);
@@ -101,6 +168,7 @@ char* photoViewer(crossTexture* _passedTexture, char* _currentRelativeFilename){
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0,myarchive);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
 			printf("failed to load.\n");
+			closeHArchive(myarchive);
 			return NULL;
 		}
 	}
@@ -129,8 +197,7 @@ char* photoViewer(crossTexture* _passedTexture, char* _currentRelativeFilename){
 	}
 	freeTexture(tex);
 	if (myarchive){
-		freedecryptstate(myarchive);
-		free(myarchive);
+		closeHArchive(myarchive);
 	}
 	return (_currentRelativeFilename);
 }
@@ -347,7 +414,9 @@ char* photoViewer(crossTexture* _singleTexture, char* _currentRelativeFilename) 
 	struct decstate* myarchive=NULL;
 	if (_currentRelativeFilename!=NULL){
 		if (isHArchive(_currentRelativeFilename)){
-			setupArchiveStuff(&myarchive,_currentRelativeFilename);
+			if (setupArchiveStuff(&myarchive,_currentRelativeFilename)){
+				return NULL;
+			}
 			_currentRelativeFilename=NULL;
 		}else{
 			_currentRelativeFilename=strdup(_currentRelativeFilename);
@@ -362,10 +431,12 @@ char* photoViewer(crossTexture* _singleTexture, char* _currentRelativeFilename) 
 	}else{
 		int _initialLoadResult = loadNewPage(&tex,&_currentRelativeFilename,0,myarchive);
 		if (_initialLoadResult==LOADNEW_DIDNTLOAD){
+			closeHArchive(myarchive);
 			return NULL;
 		}
 	}
 	if (!tex) {
+		closeHArchive(myarchive);
 		return NULL;
 	}
 	// Variables
@@ -482,6 +553,8 @@ char* photoViewer(crossTexture* _singleTexture, char* _currentRelativeFilename) 
 	}
 	// This is the only way to exit.
 	freeTexture(tex);
+	closeHArchive(myarchive);
+	controlsReset();
 	return _currentRelativeFilename;
 }
 

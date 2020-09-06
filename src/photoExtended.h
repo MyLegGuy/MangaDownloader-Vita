@@ -212,9 +212,11 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		freeTexture(*_toStorePage);
 		*_toStorePage=NULL;
 	}
-	if (decryptioneof(d)){
+	if (decryptioneof(d) || decstateplusImGoingToNextPage(d)){
 		return LOADNEW_FINISHEDMANGA;
 	}
+	int _ret=LOADNEW_RETURNEDSAME;
+	decstateResetCounter(d);
 
 	#if GBREND == GBREND_SDL
 	unsigned char* _bytes = malloc(_len);
@@ -225,7 +227,8 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		*_toStorePage=loadJPGBuffer(_bytes,_len);
 	}
 	free(_bytes);
-	return LOADNEW_LOADEDNEW;
+	_ret=LOADNEW_LOADEDNEW;
+	goto ret;
 	#elif GBREND == GBREND_VITA2D
 
 	unsigned char _firstByte;
@@ -236,10 +239,12 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		decryptmore(d,&pngsig[0]+1,PNG_SIGSIZE-1);
 		if (png_sig_cmp(pngsig,0,PNG_SIGSIZE)!=0){
 			fprintf(stderr,"bad png\n");
-			goto err;
+			_ret=LOADNEW_RETURNEDSAME;
+			goto ret;
 		}
 		*_toStorePage=_vita2d_load_PNG_generic(d, _png_read_callback);
-		return LOADNEW_LOADEDNEW;
+		_ret=LOADNEW_LOADEDNEW;
+		goto ret;
 	}else if (_firstByte==0xFF){ // jaypeg
 		/* unsigned int magic; */
 		/* magic=_firstByte; */
@@ -265,7 +270,7 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		src->pub.bytes_in_buffer = 0; /* forces fill_input_buffer on first read */
 		src->pub.next_input_byte = NULL; /* until buffer loaded */
 		src->d=d;
-		src->bytesLeft=_len-1;
+		src->bytesLeft=_len-decstateReadCount(d);
 		src->buff=malloc(JPGBUFFSIZE);
 		src->_isFirstByte=1;
 		//
@@ -273,18 +278,21 @@ int loadNewPageArchive(crossTexture** _toStorePage, char** _currentRelativeFilen
 		*_toStorePage=_vita2d_load_JPEG_generic(&jinfo, &jerr);
 		free(src->buff);
 		jpeg_destroy_decompress(&jinfo);
-		return LOADNEW_LOADEDNEW;
-	}else{
-		// TODO - either just fast forward through the rest of the file OR make sure only png or jpg end up in archive.
+		_ret=LOADNEW_LOADEDNEW;
+		goto ret;
 	}
-
 	#else
-	#warning no loader for this
+	#warning no custom loader for this
 	#endif
-	return LOADNEW_RETURNEDSAME;
-err:
-	// TODO - skip through the rest of the file
-	return LOADNEW_RETURNEDSAME;
+ret:
+	{
+		long _remaining=_len-decstateReadCount(d);
+		unsigned char c;
+		for (long i=0;i<_remaining;++i){
+			decryptmore(d,&c,1);
+		}
+	}
+	return _ret;
 }
 
 // Called by image viewing thread
