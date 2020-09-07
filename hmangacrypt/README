@@ -1,0 +1,3 @@
+shove a bunch of images together and then encrypt with openssl.
+the settings are defined at the top.
+this program is meant to be run on a lot of directories at once with a single output location.

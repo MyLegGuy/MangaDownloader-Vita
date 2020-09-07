@@ -17,8 +17,9 @@
 //#define MYITERATIONS 25000 // ~5 seconds, (~3.5 overclocked)
 #define MYITERATIONS 30000 // ~4.5 seconds overclocked
 #define MYHASH EVP_sha256()
-#define ENCVERSIONNUM 1
+#define MYDEFAULTCIPHER EVP_aes_256_cbc()
 #define DEFAULTSALTLEN 16
+#define ENCVERSIONNUM 1 // for the file foramt that stores the encryption settings
 
 /*
 DECRYPTED FILE FORMAT:
@@ -153,7 +154,7 @@ void ewrite64(struct cryptstate* fp, uint64_t n){
 	efwrite(&n,1,8,fp);
 }
 void initcryptstate(struct cryptstate* _ret, const char* _password, int _passwordLen, const char* _outFilename){
-	_ret->cipher=EVP_aes_256_cbc();
+	_ret->cipher=MYDEFAULTCIPHER;
 	int _saltLen=DEFAULTSALTLEN;
 	unsigned char _salt[_saltLen];
 	if (RAND_bytes(_salt,DEFAULTSALTLEN)!=1){
@@ -356,9 +357,27 @@ char* genFilename(){
 	_ret[i*2]='\0';
 	return _ret;
 }
+void highDoDir(const char* _inpath, const char* _outDir, unsigned char* _passwordBuff, int _passwordLen){
+	char* _fullOutPath;
+	{
+		char* _outFilename=genFilename();
+		int _nameLen = strlen(_outFilename);
+		int _outDirLen = strlen(_outDir);
+		_fullOutPath=malloc(_outDirLen+1+_nameLen+strlen(FILENAMEEXT)+1);
+		memcpy(_fullOutPath,_outDir,_outDirLen);
+		_fullOutPath[_outDirLen]='/';
+		memcpy(_fullOutPath+_outDirLen+1,_outFilename,_nameLen);
+		_fullOutPath[_outDirLen+1+_nameLen]='\0';
+		strcat(_fullOutPath,FILENAMEEXT);
+		free(_outFilename);
+	}
+	printf("%s -> %s\n",_inpath,_fullOutPath);
+	packdir(_inpath,_fullOutPath,_passwordBuff,_passwordLen);
+	free(_fullOutPath);
+}
 int main(int argc, char** args){
 	if (argc<=1){
-		fprintf(stderr,"%s <password file> <out dir> <in dir 1> [in dir 2] [in dir ...]\n",argc>0 ? args[0] : "hmangacrypt");
+		fprintf(stderr,"%s <password file> <out dir> [-i <indirlist>] [in dir 1] [in dir 2] [in dir ...]\n",argc>0 ? args[0] : "hmangacrypt");
 		return 1;
 	}
 	unsigned char* _passwordBuff;
@@ -366,23 +385,44 @@ int main(int argc, char** args){
 	fileToBuff(args[1],&_passwordBuff,&_passwordLen);
 	//
 	const char* _outDir = args[2];
-	int _outDirLen = strlen(_outDir);
 	for (int i=3;i<argc;++i){
-		char* _fullOutPath;
-		{
-			char* _outFilename=genFilename();
-			int _nameLen = strlen(_outFilename);
-			_fullOutPath=malloc(_outDirLen+1+_nameLen+strlen(FILENAMEEXT)+1);
-			memcpy(_fullOutPath,_outDir,_outDirLen);
-			_fullOutPath[_outDirLen]='/';
-			memcpy(_fullOutPath+_outDirLen+1,_outFilename,_nameLen);
-			_fullOutPath[_outDirLen+1+_nameLen]='\0';
-			strcat(_fullOutPath,FILENAMEEXT);
-			free(_outFilename);
+		if (strcmp(args[i],"-i")==0){
+			FILE* fp = fopen(args[i+1],"rb");
+			if (!fp){
+				perror(args[i]);
+				continue;
+			}
+			while(1){
+				char* _line=NULL;
+				size_t _lineLen=0;
+				errno=0;
+				if (getline(&_line,&_lineLen,fp)==-1){
+					if (errno!=0){
+						perror("getline");
+						exit(1);
+					}
+					break;
+				}
+				{
+					int _l = strlen(_line);
+					if (_l==0){
+						free(_line);
+						continue;
+					}
+					if (_line[_l-1]==0x0A){
+						_line[_l-1]='\0';
+					}
+				}
+				highDoDir(_line,_outDir,_passwordBuff,_passwordLen);
+				free(_line);
+			}
+			if (fclose(fp)){
+				perror(NULL);
+			}
+			++i;
+		}else{
+			highDoDir(args[i],_outDir,_passwordBuff,_passwordLen);
 		}
-		printf("%s -> %s\n",args[i],_fullOutPath);
-		packdir(args[i],_fullOutPath,_passwordBuff,_passwordLen);
-		free(_fullOutPath);
 	}
 	myZeroBuff(_passwordBuff,_passwordLen);
 	free(_passwordBuff);
